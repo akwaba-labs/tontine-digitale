@@ -27,7 +27,8 @@
     "postinstall": "npm --prefix functions install",
     "build:functions": "rolldown -c functions/rolldown.config.js && node scripts/ensure-functions-secret.js",
     "digest": "npm run build:functions && node functions/lib/run-digest.js",
-    "make-admin": "node scripts/make-admin.js"
+    "make-admin": "node scripts/make-admin.js",
+    "clean:demo": "node scripts/clean-demo.js"
   },
   "dependencies": {
     "@fontsource/tinos": "^5.3.0",

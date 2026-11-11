@@ -117,6 +117,9 @@ Avec les émulateurs lancés, `npm run seed` crée trois comptes (mot de passe `
 
 Le script refuse de tourner sur un projet qui ne commence pas par `demo-`.
 
+Pour retirer ces données de démonstration sans toucher aux autres comptes : `npm run clean:demo`
+(supprime les comptes `@demo.ci`, leurs tontines, invitations, notifications et e-mails).
+
 ## Espaces : membre, organisateur, back-office
 
 - **Espace membre** (`/tableau-de-bord`) : prochain dépôt, prochain pot, à faire, échéances.
