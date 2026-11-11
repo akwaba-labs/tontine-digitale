@@ -3,6 +3,8 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  server: { port: 8081, strictPort: true },
+  preview: { port: 8081, strictPort: true },
   css: {
     preprocessorOptions: {
       scss: {
@@ -15,6 +17,7 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
+    include: ['src/**/*.test.{js,jsx}'],
     setupFiles: ['./src/test/setup.js'],
     css: false,
   },

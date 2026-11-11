@@ -1,9 +1,42 @@
 rules_version = '2';
 
-// Phase 1 : tout est refusé par défaut.
-// Les règles des preuves de paiement (membres uniquement, images, 2 Mo max) arrivent en phase 2.
+// Règles de sécurité de Cloud Storage.
+// - Preuves de paiement : lecture réservée aux membres de la tontine, images de moins de 2 Mo.
+// - Photos de profil : écriture par le propriétaire uniquement, images de moins de 2 Mo.
 service firebase.storage {
   match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isImage() {
+      return request.resource.contentType.matches('image/(jpeg|png|webp)');
+    }
+
+    function isSmallEnough() {
+      return request.resource.size <= 2 * 1024 * 1024;
+    }
+
+    function isTontineMember(tontineId) {
+      return signedIn()
+        && request.auth.uid in firestore.get(/databases/(default)/documents/tontines/$(tontineId)).data.memberIds;
+    }
+
+    match /proofs/{tontineId}/{userId}/{fileName} {
+      allow read: if isTontineMember(tontineId);
+      allow create: if signedIn() && request.auth.uid == userId
+        && isTontineMember(tontineId) && isImage() && isSmallEnough();
+      // Une preuve envoyée ne peut être ni remplacée ni supprimée.
+      allow update, delete: if false;
+    }
+
+    match /avatars/{userId}/{fileName} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && request.auth.uid == userId
+        && isImage() && isSmallEnough();
+      allow delete: if signedIn() && request.auth.uid == userId;
+    }
+
     match /{allPaths=**} {
       allow read, write: if false;
     }

@@ -1,12 +1,560 @@
 rules_version = '2';
 
-// Phase 1 : tout est refusé par défaut.
-// Les vraies règles (membres, organisateur, journal en ajout uniquement) arrivent en phase 2,
-// accompagnées de leurs tests avec l'émulateur.
+// Règles de sécurité de Cloud Firestore.
+// Il n'y a pas de serveur entre l'application et la base : ces règles sont la seule protection.
+// Le modèle de données est décrit dans docs/data-model.md ; chaque règle est testée dans
+// tests/rules/firestore.rules.test.js.
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if false;
+
+    // ---------------------------------------------------------------- Outils
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function uid() {
+      return request.auth.uid;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function changedKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    function onlyChanged(keys) {
+      return changedKeys().hasOnly(keys);
+    }
+
+    function isNow(value) {
+      return value == request.time;
+    }
+
+    function isText(value, min, max) {
+      return value is string && value.size() >= min && value.size() <= max;
+    }
+
+    function isIntBetween(value, min, max) {
+      return value is int && value >= min && value <= max;
+    }
+
+    function isIsoDate(value) {
+      return value is string && value.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+    }
+
+    // « AAAA-MM-JJ » → horodatage à minuit UTC (= minuit à Abidjan).
+    function isoToTimestamp(iso) {
+      return timestamp.date(int(iso[0:4]), int(iso[5:7]), int(iso[8:10]));
+    }
+
+    function tontinePath(tontineId) {
+      return /databases/$(database)/documents/tontines/$(tontineId);
+    }
+
+    function tontineOf(tontineId) {
+      return get(tontinePath(tontineId)).data;
+    }
+
+    function tontineAfter(tontineId) {
+      return getAfter(tontinePath(tontineId)).data;
+    }
+
+    function memberPath(tontineId, userId) {
+      return /databases/$(database)/documents/tontines/$(tontineId)/members/$(userId);
+    }
+
+    function roundPath(tontineId, index) {
+      return /databases/$(database)/documents/tontines/$(tontineId)/rounds/$(string(index));
+    }
+
+    function isMemberOf(t) {
+      return signedIn() && uid() in t.memberIds;
+    }
+
+    function isOwnerOf(t) {
+      return signedIn() && t.ownerId == uid();
+    }
+
+    // Organisateur ou co-organisateur : peut confirmer ou rejeter les paiements.
+    function isManagerOf(t) {
+      return isOwnerOf(t) || (signedIn() && uid() in t.coOrganizerIds);
+    }
+
+    function isDrawn(t) {
+      return 'drawAt' in t;
+    }
+
+    // ------------------------------------------------------------ Utilisateurs
+
+    function validUser(d) {
+      return d.keys().hasAll(['firstName', 'lastName', 'email', 'phone', 'createdAt', 'updatedAt'])
+        && d.keys().hasOnly(['firstName', 'lastName', 'email', 'phone', 'photoURL', 'createdAt', 'updatedAt'])
+        && isText(d.firstName, 1, 60)
+        && isText(d.lastName, 1, 60)
+        && isText(d.email, 3, 200)
+        && d.phone is string
+        && d.phone.matches('^[+]225(01|05|07|21|25|27)[0-9]{8}$')
+        && (!('photoURL' in d) || d.photoURL == null || isText(d.photoURL, 1, 2000))
+        && isNow(d.updatedAt);
+    }
+
+    match /users/{userId} {
+      allow get: if signedIn() && uid() == userId;
+      allow list: if false;
+      allow create: if signedIn() && uid() == userId
+        && validUser(incoming()) && isNow(incoming().createdAt);
+      allow update: if signedIn() && uid() == userId
+        && validUser(incoming()) && incoming().createdAt == existing().createdAt;
+      // Suppression du compte (loi ivoirienne n° 2013-450 sur les données personnelles).
+      allow delete: if signedIn() && uid() == userId;
+    }
+
+    // -------------------------------------------------------------- Invitations
+    // invites/{code} permet de trouver une tontine par son code sans pouvoir la lire.
+
+    function validInvite(d) {
+      return d.keys().hasOnly(['tontineId', 'tontineName', 'ownerName', 'amount', 'frequency', 'totalShares', 'createdAt'])
+        && d.tontineId is string
+        && isText(d.tontineName, 2, 80)
+        && isText(d.ownerName, 1, 130)
+        && d.amount is int
+        && d.frequency is string
+        && d.totalShares is int;
+    }
+
+    match /invites/{code} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn() && code.matches('^[A-Z0-9]{6}$')
+        && validInvite(incoming())
+        && isNow(incoming().createdAt)
+        && tontineAfter(incoming().tontineId).ownerId == uid()
+        && tontineAfter(incoming().tontineId).inviteCode == code;
+      allow update: if signedIn() && validInvite(incoming())
+        && incoming().tontineId == existing().tontineId
+        && incoming().createdAt == existing().createdAt
+        && tontineOf(existing().tontineId).ownerId == uid();
+      allow delete: if signedIn() && tontineOf(existing().tontineId).ownerId == uid();
+    }
+
+    // ----------------------------------------------------------------- Tontines
+
+    function tontineKeys() {
+      return ['name', 'description', 'amount', 'frequency', 'startDate', 'totalShares',
+        'graceDays', 'penaltyAmount', 'status', 'ownerId', 'ownerName', 'inviteCode',
+        'memberIds', 'coOrganizerIds', 'orderMode', 'payoutOrder', 'drawAt', 'drawBy',
+        'activatedAt', 'closedAt', 'createdAt', 'updatedAt'];
+    }
+
+    function validSettings(d) {
+      return d.keys().hasOnly(tontineKeys())
+        && isText(d.name, 2, 80)
+        && isText(d.description, 0, 500)
+        && isIntBetween(d.amount, 100, 100000000)
+        && d.frequency in ['WEEKLY', 'BIWEEKLY', 'MONTHLY']
+        && isIsoDate(d.startDate)
+        && isIntBetween(d.totalShares, 2, 60)
+        && isIntBetween(d.graceDays, 0, 30)
+        && isIntBetween(d.penaltyAmount, 0, 100000000)
+        && d.status in ['DRAFT', 'ACTIVE', 'COMPLETED', 'CANCELLED']
+        && d.orderMode in ['MANUAL', 'DRAW']
+        && d.memberIds is list
+        && d.coOrganizerIds is list
+        && d.payoutOrder is list
+        && d.payoutOrder.size() <= d.totalShares
+        && d.ownerId in d.memberIds
+        && d.memberIds.hasAll(d.coOrganizerIds)
+        && isNow(d.updatedAt);
+    }
+
+    function validNewTontine(d) {
+      return validSettings(d)
+        && d.ownerId == uid()
+        && isText(d.ownerName, 1, 130)
+        && d.inviteCode is string
+        && d.status == 'DRAFT'
+        && d.memberIds == [uid()]
+        && d.coOrganizerIds == []
+        && d.payoutOrder == []
+        && !('drawAt' in d)
+        && !('activatedAt' in d)
+        && !('closedAt' in d)
+        && isNow(d.createdAt);
+    }
+
+    function validStatusChange(from, to) {
+      return from == to
+        || (from == 'DRAFT' && to in ['ACTIVE', 'CANCELLED'])
+        || (from == 'ACTIVE' && to in ['COMPLETED', 'CANCELLED']);
+    }
+
+    function validTontineUpdate(r, d) {
+      return validSettings(d)
+        && d.ownerId == r.ownerId
+        && d.ownerName == r.ownerName
+        && d.inviteCode == r.inviteCode
+        && d.createdAt == r.createdAt
+        && validStatusChange(r.status, d.status)
+        // Montant, fréquence, calendrier, parts, ordre et membres sont figés après le démarrage.
+        && (r.status == 'DRAFT' || (
+          d.amount == r.amount && d.frequency == r.frequency && d.startDate == r.startDate
+          && d.totalShares == r.totalShares && d.payoutOrder == r.payoutOrder
+          && d.orderMode == r.orderMode && d.memberIds == r.memberIds
+          && d.graceDays == r.graceDays && d.penaltyAmount == r.penaltyAmount
+        ))
+        // Le tirage au sort est enregistré une seule fois : impossible de le relancer.
+        && (!isDrawn(r) || (
+          d.drawAt == r.drawAt && d.drawBy == r.drawBy && d.payoutOrder == r.payoutOrder
+          && d.orderMode == 'DRAW' && d.memberIds == r.memberIds && d.totalShares == r.totalShares
+        ))
+        && (isDrawn(r) || !isDrawn(d) || (r.status == 'DRAFT' && isNow(d.drawAt) && d.drawBy == uid()
+          && d.orderMode == 'DRAW' && d.payoutOrder.size() == d.totalShares))
+        // Démarrage : ordre complet et date enregistrée.
+        && (r.status != 'DRAFT' || d.status != 'ACTIVE' || (
+          d.payoutOrder.size() == d.totalShares && isNow(d.activatedAt)
+        ))
+        && (r.status == d.status || d.status in ['DRAFT', 'ACTIVE'] || isNow(d.closedAt));
+    }
+
+    match /tontines/{tontineId} {
+      allow read: if isMemberOf(existing());
+      allow create: if signedIn() && validNewTontine(incoming());
+      allow update: if isOwnerOf(existing()) && validTontineUpdate(existing(), incoming());
+      allow delete: if false;
+
+      // ------------------------------------------------------------- Membres
+
+      function validMember(d) {
+        return d.keys().hasOnly(['userId', 'displayName', 'phone', 'role', 'shares', 'status', 'joinedAt', 'updatedAt'])
+          && d.keys().hasAll(['userId', 'displayName', 'phone', 'role', 'shares', 'status', 'joinedAt', 'updatedAt'])
+          && isText(d.displayName, 1, 130)
+          && isText(d.phone, 0, 20)
+          && d.role in ['ORGANIZER', 'CO_ORGANIZER', 'MEMBER']
+          && isIntBetween(d.shares, 1, 10)
+          && d.status in ['PENDING', 'ACTIVE', 'REFUSED', 'LEFT']
+          && isNow(d.updatedAt);
+      }
+
+      // Les membres peuvent changer tant que la tontine est en préparation et non tirée au sort.
+      function membershipOpen(t) {
+        return t.status == 'DRAFT' && !isDrawn(t);
+      }
+
+      match /members/{memberId} {
+        allow read: if isMemberOf(tontineOf(tontineId))
+          || (signedIn() && memberId == uid());
+
+        allow create: if signedIn() && memberId == uid()
+          && validMember(incoming())
+          && incoming().userId == uid()
+          && isNow(incoming().joinedAt)
+          && (
+            // Demande pour rejoindre (via le code d'invitation)
+            (incoming().status == 'PENDING' && incoming().role == 'MEMBER'
+              && membershipOpen(tontineOf(tontineId)))
+            // L'organisateur, au moment de la création de la tontine
+            || (incoming().status == 'ACTIVE' && incoming().role == 'ORGANIZER'
+              && !exists(tontinePath(tontineId))
+              && tontineAfter(tontineId).ownerId == uid())
+          );
+
+        allow update: if validMember(incoming())
+          && incoming().userId == existing().userId
+          && incoming().joinedAt == existing().joinedAt
+          && (ownerUpdatesMember() || memberUpdatesSelf());
+
+        allow delete: if false;
+
+        function ownerUpdatesMember() {
+          let t = tontineOf(tontineId);
+          let isSelf = memberId == t.ownerId;
+          return isOwnerOf(t)
+            && (!isSelf || (incoming().role == 'ORGANIZER' && incoming().status == 'ACTIVE'))
+            && (isSelf || incoming().role != 'ORGANIZER')
+            && (
+              // En préparation : accepter, refuser, retirer, changer les parts ou le rôle
+              (membershipOpen(t) && onlyChanged(['role', 'shares', 'status', 'updatedAt']))
+              // Après : seul le rôle (co-organisateur) peut changer
+              || onlyChanged(['role', 'updatedAt'])
+            );
+        }
+
+        function memberUpdatesSelf() {
+          let t = tontineOf(tontineId);
+          return signedIn() && memberId == uid() && uid() != t.ownerId
+            && membershipOpen(t)
+            && onlyChanged(['status', 'shares', 'displayName', 'phone', 'updatedAt'])
+            && incoming().role == 'MEMBER'
+            && (
+              // Quitter ou annuler sa demande
+              (existing().status in ['PENDING', 'ACTIVE'] && incoming().status == 'LEFT')
+              // Refaire une demande après un refus ou un départ
+              || (existing().status in ['REFUSED', 'LEFT'] && incoming().status == 'PENDING')
+              // Modifier sa demande en attente
+              || (existing().status == 'PENDING' && incoming().status == 'PENDING')
+            );
+        }
+      }
+
+      // ---------------------------------------------------------------- Tours
+
+      match /rounds/{roundId} {
+        allow read: if isMemberOf(tontineOf(tontineId));
+
+        // Créés en un seul lot au démarrage de la tontine, à partir de l'ordre de passage.
+        allow create: if isOwnerOf(tontineOf(tontineId))
+          && tontineOf(tontineId).status == 'DRAFT'
+          && tontineAfter(tontineId).status == 'ACTIVE'
+          && validNewRound(tontineAfter(tontineId), incoming());
+
+        allow update: if ownerSendsPayout() || beneficiaryConfirmsPayout();
+        allow delete: if false;
+
+        function validNewRound(t, d) {
+          return d.keys().hasOnly(['index', 'dueDate', 'beneficiaryId', 'beneficiaryName', 'shareNumber', 'potAmount', 'payoutStatus', 'createdAt', 'updatedAt'])
+            && isIntBetween(d.index, 1, t.totalShares)
+            && roundId == string(d.index)
+            && isIsoDate(d.dueDate)
+            && d.beneficiaryId == t.payoutOrder[d.index - 1].memberId
+            && d.beneficiaryName is string
+            && d.shareNumber is int
+            && d.potAmount == t.amount * t.totalShares
+            && d.payoutStatus == 'PENDING'
+            && isNow(d.createdAt)
+            && isNow(d.updatedAt);
+        }
+
+        function ownerSendsPayout() {
+          let t = tontineOf(tontineId);
+          return isOwnerOf(t) && t.status == 'ACTIVE'
+            && existing().payoutStatus == 'PENDING'
+            && incoming().payoutStatus == 'SENT'
+            && onlyChanged(['payoutStatus', 'payoutMethod', 'payoutReference', 'payoutSentAt', 'payoutSentBy', 'updatedAt'])
+            && incoming().payoutMethod in ['CASH', 'WAVE', 'ORANGE_MONEY', 'MTN_MOMO', 'MOOV_MONEY', 'BANK_TRANSFER']
+            && isText(incoming().payoutReference, 0, 100)
+            && isNow(incoming().payoutSentAt)
+            && incoming().payoutSentBy == uid()
+            && isNow(incoming().updatedAt);
+        }
+
+        function beneficiaryConfirmsPayout() {
+          return signedIn() && existing().beneficiaryId == uid()
+            && existing().payoutStatus == 'SENT'
+            && incoming().payoutStatus == 'RECEIVED'
+            && onlyChanged(['payoutStatus', 'payoutConfirmedAt', 'updatedAt'])
+            && isNow(incoming().payoutConfirmedAt)
+            && isNow(incoming().updatedAt);
+        }
+      }
+
+      // ---------------------------------------------------------- Cotisations
+      // Identifiant : « {numéro du tour}_{uid du membre} » (une cotisation par membre et par tour).
+
+      match /contributions/{contributionId} {
+        allow read: if isMemberOf(tontineOf(tontineId));
+        allow create: if validNewContribution()
+          && (memberDeclares() || managerRecordsCash() || ownerAppliesPenaltyOnMissing());
+        allow update: if unchangedIdentity()
+          && (memberRedeclares() || managerReviews() || managerRecordsCashOnExisting() || ownerAppliesPenalty());
+        allow delete: if false;
+
+        function contributionKeys() {
+          return ['roundIndex', 'memberId', 'memberName', 'amount', 'penaltyAmount', 'method',
+            'reference', 'proofPath', 'status', 'declaredAt', 'confirmedAt', 'confirmedBy',
+            'rejectedAt', 'rejectedBy', 'rejectionReason', 'penaltyAppliedAt', 'updatedAt'];
+        }
+
+        function methods() {
+          return ['CASH', 'WAVE', 'ORANGE_MONEY', 'MTN_MOMO', 'MOOV_MONEY', 'BANK_TRANSFER'];
+        }
+
+        function memberOfContribution(d) {
+          return get(memberPath(tontineId, d.memberId)).data;
+        }
+
+        function roundOf(d) {
+          return get(roundPath(tontineId, d.roundIndex)).data;
+        }
+
+        // Retard : après l'échéance + le délai de grâce (jour J + N inclus).
+        function isPastGrace(t, d) {
+          return request.time >= isoToTimestamp(roundOf(d).dueDate) + duration.value(t.graceDays + 1, 'd');
+        }
+
+        function validNewContribution() {
+          let d = incoming();
+          let t = tontineOf(tontineId);
+          return d.keys().hasOnly(contributionKeys())
+            && t.status == 'ACTIVE'
+            && isIntBetween(d.roundIndex, 1, t.totalShares)
+            && contributionId == string(d.roundIndex) + '_' + d.memberId
+            && d.memberId in t.memberIds
+            && memberOfContribution(d).status == 'ACTIVE'
+            && isText(d.memberName, 1, 130)
+            // Le montant doit correspondre à la cotisation × parts du membre.
+            && d.amount == t.amount * memberOfContribution(d).shares
+            && isNow(d.updatedAt);
+        }
+
+        function validDeclaration(d) {
+          return d.method in methods()
+            && isText(d.reference, 0, 100)
+            && (d.proofPath == null || (d.proofPath is string
+              && d.proofPath.matches('^proofs/' + tontineId + '/' + d.memberId + '/.+')))
+            && isNow(d.declaredAt);
+        }
+
+        function memberDeclares() {
+          let d = incoming();
+          return d.memberId == uid()
+            && d.status == 'DECLARED'
+            && d.penaltyAmount == 0
+            && validDeclaration(d)
+            && !('confirmedAt' in d) && !('confirmedBy' in d) && !('rejectedAt' in d);
+        }
+
+        // Paiement remis directement à l'organisateur (espèces…) : enregistré et confirmé.
+        function managerRecordsCash() {
+          let d = incoming();
+          return isManagerOf(tontineOf(tontineId))
+            && d.status == 'CONFIRMED'
+            && d.penaltyAmount == 0
+            && validDeclaration(d)
+            && d.proofPath == null
+            && isNow(d.confirmedAt)
+            && d.confirmedBy == uid();
+        }
+
+        function ownerAppliesPenaltyOnMissing() {
+          let d = incoming();
+          let t = tontineOf(tontineId);
+          return isOwnerOf(t)
+            && d.status == 'LATE'
+            && t.penaltyAmount > 0
+            && d.penaltyAmount == t.penaltyAmount
+            && isNow(d.penaltyAppliedAt)
+            && isPastGrace(t, d)
+            && d.keys().hasOnly(['roundIndex', 'memberId', 'memberName', 'amount', 'penaltyAmount', 'status', 'penaltyAppliedAt', 'updatedAt']);
+        }
+
+        function unchangedIdentity() {
+          return incoming().roundIndex == existing().roundIndex
+            && incoming().memberId == existing().memberId
+            && incoming().amount == existing().amount
+            && incoming().keys().hasOnly(contributionKeys())
+            && isNow(incoming().updatedAt)
+            && tontineOf(tontineId).status == 'ACTIVE';
+        }
+
+        function memberRedeclares() {
+          let d = incoming();
+          return existing().memberId == uid()
+            && existing().status in ['REJECTED', 'LATE']
+            && d.status == 'DECLARED'
+            && validDeclaration(d)
+            && onlyChanged(['status', 'method', 'reference', 'proofPath', 'declaredAt', 'updatedAt']);
+        }
+
+        function managerReviews() {
+          let d = incoming();
+          return isManagerOf(tontineOf(tontineId))
+            && existing().status == 'DECLARED'
+            && (
+              (d.status == 'CONFIRMED'
+                && onlyChanged(['status', 'confirmedAt', 'confirmedBy', 'updatedAt'])
+                && isNow(d.confirmedAt) && d.confirmedBy == uid())
+              || (d.status == 'REJECTED'
+                && onlyChanged(['status', 'rejectionReason', 'rejectedAt', 'rejectedBy', 'updatedAt'])
+                && isText(d.rejectionReason, 3, 300)
+                && isNow(d.rejectedAt) && d.rejectedBy == uid())
+            );
+        }
+
+        function managerRecordsCashOnExisting() {
+          let d = incoming();
+          return isManagerOf(tontineOf(tontineId))
+            && existing().status in ['REJECTED', 'LATE']
+            && d.status == 'CONFIRMED'
+            && d.method in methods()
+            && isText(d.reference, 0, 100)
+            && onlyChanged(['status', 'method', 'reference', 'declaredAt', 'confirmedAt', 'confirmedBy', 'updatedAt'])
+            && isNow(d.declaredAt)
+            && isNow(d.confirmedAt)
+            && d.confirmedBy == uid();
+        }
+
+        function ownerAppliesPenalty() {
+          let d = incoming();
+          let t = tontineOf(tontineId);
+          return isOwnerOf(t)
+            && t.penaltyAmount > 0
+            && existing().status != 'CONFIRMED'
+            && existing().get('penaltyAmount', 0) == 0
+            && d.penaltyAmount == t.penaltyAmount
+            && isNow(d.penaltyAppliedAt)
+            && isPastGrace(t, existing())
+            && onlyChanged(['penaltyAmount', 'penaltyAppliedAt', 'updatedAt']);
+        }
+      }
+
+      // ------------------------------------------------- Journal (ajout uniquement)
+
+      match /events/{eventId} {
+        allow read: if isMemberOf(tontineOf(tontineId));
+        // L'auteur doit être membre avant OU après le lot d'écritures
+        // (création de la tontine, départ d'un membre…).
+        allow create: if signedIn()
+          && incoming().keys().hasOnly(['type', 'actorId', 'actorName', 'payload', 'createdAt'])
+          && incoming().actorId == uid()
+          && isText(incoming().actorName, 1, 130)
+          && incoming().type is string
+          && incoming().payload is map
+          && isNow(incoming().createdAt)
+          && (isMemberOf(tontineAfter(tontineId)) || isMemberOf(tontineOf(tontineId)));
+        // Personne, pas même l'organisateur, ne peut modifier ou supprimer une entrée.
+        allow update, delete: if false;
+      }
+    }
+
+    // Demandes en attente d'un utilisateur (requête collectionGroup('members')).
+    match /{path=**}/members/{memberId} {
+      allow read: if signedIn() && existing().userId == uid();
+    }
+
+    // ------------------------------------------------------------ Notifications
+
+    function relatedToTontine(tontineId, userId) {
+      return userId in tontineAfter(tontineId).memberIds
+        || existsAfter(memberPath(tontineId, userId));
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if signedIn() && existing().userId == uid();
+      allow create: if signedIn()
+        && incoming().keys().hasOnly(['userId', 'tontineId', 'type', 'message', 'link', 'actorId', 'read', 'createdAt'])
+        && incoming().userId is string
+        && incoming().tontineId is string
+        && incoming().type is string
+        && isText(incoming().message, 1, 300)
+        && isText(incoming().link, 0, 200)
+        && incoming().actorId == uid()
+        && incoming().read == false
+        && isNow(incoming().createdAt)
+        && relatedToTontine(incoming().tontineId, uid())
+        && relatedToTontine(incoming().tontineId, incoming().userId);
+      allow update: if signedIn() && existing().userId == uid()
+        && onlyChanged(['read', 'readAt'])
+        && incoming().read == true
+        && isNow(incoming().readAt);
+      allow delete: if signedIn() && existing().userId == uid();
     }
   }
 }
