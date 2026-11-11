@@ -5,8 +5,10 @@ import {
   EVENT_TYPES,
   NOTIFICATION_TYPES,
   PAYOUT_STATUS,
+  TONTINE_STATUS,
   isGuestId,
 } from '../../../shared/constants/domain';
+import { closeTontine } from '../../tontines/services/tontineService';
 import { formatAmount } from '../../../shared/utils/formatAmount';
 import { tontineTabPath } from '../../../app/routePaths';
 import { addEvent } from '../../tontines/services/eventService';
@@ -74,4 +76,20 @@ export async function confirmPayoutReceived(actor, tontine, round) {
     link: tontineTabPath(tontine.id, 'tours'),
   });
   await batch.commit();
+}
+
+/**
+ * Remise du pot en une seule fois, quand personne d'autre ne doit confirmer : l'organisateur
+ * prend lui-même son pot, ou le remet en main propre à un membre sans compte.
+ * Deux écritures successives (envoi, puis réception), chacune vérifiée par les règles.
+ */
+export async function handOverPayout(actor, tontine, round, payment) {
+  if (round.payoutStatus === PAYOUT_STATUS.PENDING) {
+    await markPayoutSent(actor, tontine, round, payment);
+  }
+  await confirmPayoutReceived(actor, tontine, { ...round, payoutStatus: PAYOUT_STATUS.SENT });
+  // Dernier pot remis par l'organisateur : la tontine est terminée.
+  if (actor.uid === tontine.ownerId && round.index === tontine.totalShares) {
+    await closeTontine(actor, tontine, TONTINE_STATUS.COMPLETED);
+  }
 }

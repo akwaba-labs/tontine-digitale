@@ -1,4 +1,5 @@
 import { addDays } from '../../../shared/utils/dates';
+import { payableDeposits } from '../../rounds/logic/schedule';
 import {
   CONTRIBUTION_STATUS,
   MEMBER_STATUS,
@@ -118,7 +119,7 @@ export function summarizeRound({ round, tontine, members, contributionsById, tod
 /**
  * Bilan d'un membre dans une tontine : total versé, total reçu, retards,
  * prochain dépôt à faire et tours où il reçoit le pot.
- * `deposits` : buildDeposits(rounds) ; `currentDepositIndex` : getCurrentDepositIndex().
+ * `deposits` : buildDeposits(rounds).
  */
 export function summarizeMember({
   userId,
@@ -127,10 +128,11 @@ export function summarizeMember({
   rounds,
   deposits,
   contributionsById,
-  currentDepositIndex,
   today,
 }) {
   const sorted = [...deposits].sort((a, b) => a.index - b.index);
+  // Seuls les dépôts du tour en cours (et ceux dont la date est arrivée) sont à payer maintenant.
+  const payable = new Set(payableDeposits(sorted, today).map((d) => d.index));
   let totalPaid = 0;
   let totalPenalties = 0;
   let lateCount = 0;
@@ -148,18 +150,13 @@ export function summarizeMember({
       lateCount += 1;
     }
 
-    if (!nextDue && canDeclare(status)) {
+    if (!nextDue && canDeclare(status) && payable.has(round.index)) {
       nextDue = {
         round,
         status,
         amount: amountDue(contribution, tontine.amount, member.shares),
       };
     }
-  }
-
-  // On ne propose pas une échéance trop lointaine comme « prochaine » si tout est à jour.
-  if (nextDue && currentDepositIndex !== null && nextDue.round.index > currentDepositIndex + 1) {
-    nextDue = null;
   }
 
   const myRounds = [...rounds]

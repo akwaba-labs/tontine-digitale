@@ -55,12 +55,14 @@ describe('espace organisateur', () => {
       today,
     });
     expect(overview.managed.map((m) => m.tontine.id)).toEqual(['a', 'd']);
-    expect(overview.totals).toEqual({ toConfirm: 1, requests: 1, payoutsDue: 1, late: 0 });
+    // Personne n'a payé le tour 1 (échu) : 3 retards.
+    expect(overview.totals).toEqual({ toConfirm: 1, requests: 1, payoutsDue: 1, late: 3 });
     expect(overview.pendingActions).toBe(3);
     const marche = overview.managed[0];
     expect(marche.toConfirm[0].deposit.index).toBe(2);
-    expect(marche.current.deposit.index).toBe(2);
-    expect(marche.current.confirmedCount).toBe(1);
+    // Le pot du tour 1 n'est pas encore pris : la collecte suivie est celle du tour 1.
+    expect(marche.current.deposit.index).toBe(1);
+    expect(marche.current.confirmedCount).toBe(0);
   });
 
   it('le co-organisateur confirme les paiements mais ne verse pas les pots', () => {

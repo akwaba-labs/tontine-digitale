@@ -40,13 +40,13 @@ const types = (todos) => todos.map((todo) => todo.type);
 describe('buildTodos', () => {
   it('signale un retard au membre et un pot à verser à l’organisateur', () => {
     const bundle = { members, rounds, contributions: [] };
+    // Le pot du tour 1 n'est pas pris : on reste sur le tour 1, celui d'Awa.
     expect(types(buildTodos({ uid: 'awa', tontine, bundle, today: '2026-11-10' }))).toEqual([
       'LATE',
+      'YOUR_TURN',
     ]);
-    // Le tour en cours (n° 2) est celui de l'organisateur.
     expect(types(buildTodos({ uid: 'owner', tontine, bundle, today: '2026-11-10' }))).toEqual([
       'LATE',
-      'YOUR_TURN',
       'PAYOUT_TO_SEND',
     ]);
   });

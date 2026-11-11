@@ -82,6 +82,13 @@ Créés en un seul lot au démarrage : `index, dueDate, depositDates, beneficiar
 shareNumber, potAmount (= amount × totalShares × depositsPerRound), payoutStatus (PENDING | SENT | RECEIVED), payoutMethod,
 payoutReference, payoutSentAt, payoutSentBy, payoutConfirmedAt`.
 
+**Tour en cours** : le premier dont le pot n'a pas encore été reçu (`payoutStatus` ≠ `RECEIVED`).
+La tontine avance d'elle-même : dès que le bénéficiaire a reçu le pot, on passe au tour suivant.
+On paie les dépôts du tour en cours et des tours passés, plus ceux dont la date est arrivée ; le
+dépôt à payer est choisi automatiquement (le plus ancien non réglé). Quand le pot revient à
+l'organisateur ou à un membre sans compte, sa remise se fait en une seule action ; le dernier
+pot remis par l'organisateur clôt la tontine.
+
 Le versement du pot est tracé dans les deux sens : l'organisateur l'envoie (`SENT`), le
 bénéficiaire confirme la réception (`RECEIVED`).
 

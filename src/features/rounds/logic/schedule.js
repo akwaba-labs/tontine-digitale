@@ -62,16 +62,42 @@ export function buildDeposits(rounds) {
         depositsInRound: dates.length,
         beneficiaryId: round.beneficiaryId,
         beneficiaryName: round.beneficiaryName,
+        payoutStatus: round.payoutStatus,
       });
     });
   }
   return deposits;
 }
 
-/** Dépôt en cours : le premier dont la date n'est pas passée, sinon le dernier. */
-export function getCurrentDepositIndex(deposits, today) {
+/**
+ * Tour en cours d'après les dépôts : le premier dont le pot n'a pas encore été pris
+ * (la tontine passe au tour suivant dès que le bénéficiaire a reçu le pot).
+ */
+function currentRoundOfDeposits(deposits) {
   if (deposits.length === 0) return null;
-  return (deposits.find((d) => d.dueDate >= today) ?? deposits[deposits.length - 1]).index;
+  const pending = deposits.find((d) => d.payoutStatus !== PAYOUT_STATUS.RECEIVED);
+  return (pending ?? deposits[deposits.length - 1]).roundIndex;
+}
+
+/**
+ * Dépôt en cours : dans le tour en cours, le premier dont la date n'est pas passée,
+ * sinon son dernier dépôt.
+ */
+export function getCurrentDepositIndex(deposits, today) {
+  const roundIndex = currentRoundOfDeposits(deposits);
+  if (roundIndex === null) return null;
+  const inRound = deposits.filter((d) => d.roundIndex === roundIndex);
+  return (inRound.find((d) => d.dueDate >= today) ?? inRound[inRound.length - 1]).index;
+}
+
+/**
+ * Dépôts qu'on peut payer maintenant : ceux du tour en cours et des tours passés, plus ceux
+ * dont la date est déjà arrivée (un membre n'est jamais en retard sans pouvoir payer).
+ */
+export function payableDeposits(deposits, today) {
+  const roundIndex = currentRoundOfDeposits(deposits);
+  if (roundIndex === null) return [];
+  return deposits.filter((d) => d.roundIndex <= roundIndex || d.dueDate <= today);
 }
 
 /** « à chaque dépôt » ou « tous les 30 dépôts ». */
@@ -154,17 +180,14 @@ export function buildRounds(tontine) {
 }
 
 /**
- * Tour en cours : le premier dont l'échéance n'est pas encore passée.
- * Si toutes les échéances sont passées, le premier tour dont le pot n'a pas été reçu,
- * sinon le dernier tour.
+ * Tour en cours : le premier dont le pot n'a pas encore été pris. La tontine avance d'elle-même :
+ * dès que le bénéficiaire a reçu le pot, on passe au tour suivant. Sinon (tout est pris), le dernier.
  */
-export function getCurrentRoundIndex(rounds, today) {
+export function getCurrentRoundIndex(rounds) {
   if (rounds.length === 0) return null;
   const sorted = [...rounds].sort((a, b) => a.index - b.index);
-  const upcoming = sorted.find((round) => round.dueDate >= today);
-  if (upcoming) return upcoming.index;
-  const unpaid = sorted.find((round) => round.payoutStatus !== PAYOUT_STATUS.RECEIVED);
-  return (unpaid ?? sorted[sorted.length - 1]).index;
+  const pending = sorted.find((round) => round.payoutStatus !== PAYOUT_STATUS.RECEIVED);
+  return (pending ?? sorted[sorted.length - 1]).index;
 }
 
 export function getRoundState(round, currentIndex) {

@@ -24,7 +24,7 @@ import {
 } from '../services/contributionService';
 import PaymentMethodModal from '../../rounds/components/PaymentMethodModal';
 import RoundCollectionCard from './RoundCollectionCard';
-import { depositLabel } from '../../rounds/logic/schedule';
+import { depositLabel, payableDeposits } from '../../rounds/logic/schedule';
 import RejectModal from './RejectModal';
 import ProofLink from './ProofLink';
 
@@ -139,10 +139,9 @@ export default function ContributionsTab({ detail }) {
     );
   }
 
-  // Dépôts visibles : jusqu'au dépôt en cours (on peut aussi payer le suivant à l'avance),
-  // du plus récent au plus ancien.
-  const lastVisible = Math.min(deposits.length, (currentDepositIndex ?? 1) + 1);
-  const visibleDeposits = deposits.filter((d) => d.index <= lastVisible).reverse();
+  // Dépôts visibles : ceux du tour en cours et des tours passés (plus les dates échues),
+  // du plus récent au plus ancien. On passe au tour suivant dès que le pot est pris.
+  const visibleDeposits = payableDeposits(deposits, today).reverse();
   const depositIndex = selected ?? currentDepositIndex ?? 1;
   // `round` : le dépôt choisi (avec un dépôt par tour, c'est le tour).
   const round = deposits.find((d) => d.index === depositIndex) ?? deposits[0];

@@ -14,7 +14,7 @@ import {
   isGuestId,
 } from '../../../shared/constants/domain';
 import { formatDate } from '../../../shared/utils/formatDate';
-import { confirmPayoutReceived, markPayoutSent } from '../services/roundService';
+import { confirmPayoutReceived, handOverPayout, markPayoutSent } from '../services/roundService';
 import { getRoundState } from '../logic/schedule';
 import OrderEditor from './OrderEditor';
 import PaymentMethodModal from './PaymentMethodModal';
@@ -37,11 +37,21 @@ export default function RoundsTab({ detail }) {
 
   const isActive = tontine.status === TONTINE_STATUS.ACTIVE;
 
+  // Pot de l'organisateur lui-même ou d'un membre sans compte : remis en une seule action.
+  const isDirectHandOver = (round) => round.beneficiaryId === uid || isGuestId(round.beneficiaryId);
+
   const onSendPayout = async ({ method, reference }) => {
+    const { round } = modal;
+    const direct = isDirectHandOver(round);
     const { ok } = await run(
-      () => markPayoutSent(actor, tontine, modal.round, { method, reference }),
+      () =>
+        direct
+          ? handOverPayout(actor, tontine, round, { method, reference })
+          : markPayoutSent(actor, tontine, round, { method, reference }),
       {
-        success: 'Versement enregistré. Le bénéficiaire doit confirmer la réception.',
+        success: direct
+          ? 'Pot remis. La tontine passe au tour suivant.'
+          : 'Versement enregistré. Dès que le bénéficiaire confirme la réception, la tontine passe au tour suivant.',
       },
     );
     if (ok) setModal(null);
@@ -95,7 +105,11 @@ export default function RoundsTab({ detail }) {
                     round.payoutStatus === PAYOUT_STATUS.PENDING &&
                     state !== ROUND_STATE.UPCOMING && (
                       <Button size="sm" onClick={() => setModal({ type: 'send', round })}>
-                        Verser le pot
+                        {isMine
+                          ? 'Je prends le pot'
+                          : isGuestBeneficiary
+                            ? 'Remettre le pot'
+                            : 'Verser le pot'}
                       </Button>
                     )}
                   {isActive &&
@@ -129,16 +143,26 @@ export default function RoundsTab({ detail }) {
       <PaymentMethodModal
         key={modal?.round?.index ?? 'none'}
         show={modal?.type === 'send'}
-        title={`Verser le pot du tour n° ${modal?.round?.index ?? ''}`}
+        title={
+          modal?.round?.beneficiaryId === uid
+            ? `Je prends le pot du tour n° ${modal?.round?.index ?? ''}`
+            : `Pot du tour n° ${modal?.round?.index ?? ''}`
+        }
         description={
-          modal
-            ? isGuestId(modal.round.beneficiaryId)
-              ? `Bénéficiaire : ${modal.round.beneficiaryName} (sans compte). Vous confirmerez ensuite la remise du pot.`
-              : `Bénéficiaire : ${modal.round.beneficiaryName}. Il devra confirmer la réception.`
-            : ''
+          !modal
+            ? ''
+            : modal.round.beneficiaryId === uid
+              ? 'C’est votre tour : le pot est enregistré comme pris, et la tontine passe automatiquement au tour suivant.'
+              : isGuestId(modal.round.beneficiaryId)
+                ? `Vous remettez le pot à ${modal.round.beneficiaryName} (sans compte). La tontine passera automatiquement au tour suivant.`
+                : `Bénéficiaire : ${modal.round.beneficiaryName}. Dès qu’il aura confirmé la réception, la tontine passera automatiquement au tour suivant.`
         }
         amount={modal?.round?.potAmount}
-        confirmLabel="Enregistrer le versement"
+        confirmLabel={
+          modal && isDirectHandOver(modal.round)
+            ? 'Valider la remise du pot'
+            : 'Enregistrer le versement'
+        }
         isProcessing={isRunning}
         onConfirm={onSendPayout}
         onCancel={() => setModal(null)}

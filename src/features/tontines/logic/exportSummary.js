@@ -6,6 +6,7 @@ import {
   getEffectiveStatus,
   summarizeMember,
 } from '../../contributions/logic/contributions';
+import { payableDeposits } from '../../rounds/logic/schedule';
 
 /** Bilan par membre : parts, versé, pénalités, reçu, retards. */
 export function buildMemberRows({
@@ -42,17 +43,12 @@ export function buildMemberRows({
 }
 
 /** Détail des cotisations des dépôts déjà arrivés (jusqu'au dépôt en cours). */
-export function buildContributionRows({
-  tontine,
-  members,
-  deposits,
-  contributionsById,
-  currentDepositIndex,
-  today,
-}) {
+export function buildContributionRows({ tontine, members, deposits, contributionsById, today }) {
   const rows = [];
+  // Les dépôts déjà arrivés : tours passés, tour en cours et dates échues.
+  const payable = new Set(payableDeposits(deposits, today).map((d) => d.index));
   for (const deposit of deposits) {
-    if (currentDepositIndex !== null && deposit.index > currentDepositIndex) break;
+    if (!payable.has(deposit.index)) continue;
     for (const member of activeMembers(members)) {
       const contribution =
         contributionsById.get(contributionId(deposit.index, member.userId)) ?? null;

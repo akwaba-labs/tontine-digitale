@@ -19,6 +19,7 @@ import { formatDate } from '../../../shared/utils/formatDate';
 import { PAYMENT_METHODS, TONTINE_STATUS, isGuestId } from '../../../shared/constants/domain';
 import { tontineDetailPath, tontineTabPath } from '../../../app/routePaths';
 import { useTontineDetail } from '../../tontines/hooks/useTontineDetail';
+import { payableDeposits } from '../../rounds/logic/schedule';
 import TontineLoadError from '../../tontines/components/TontineLoadError';
 import {
   activeMembers,
@@ -35,7 +36,6 @@ const MAX_ORIGINAL_SIZE = 15 * 1024 * 1024;
 // L'organisateur qui enregistre un paiement n'a pas toujours la référence du SMS.
 const schemaFor = (isRecording) =>
   yup.object({
-    roundIndex: yup.number().required('Choisissez le dépôt.'),
     method: yup
       .string()
       .oneOf(Object.keys(PAYMENT_METHODS), 'Choisissez le moyen de paiement.')
@@ -50,11 +50,13 @@ const schemaFor = (isRecording) =>
       }),
   });
 
-/** Dépôts que ce membre peut encore payer : jusqu'au dépôt en cours + le suivant. */
+/**
+ * Dépôts que ce membre doit encore payer, du plus ancien au plus récent : ceux du tour en cours
+ * et des tours passés (plus les dates échues). Le premier est choisi automatiquement.
+ */
 function declarableFor(member, detail) {
-  const { tontine, deposits, contributionsById, currentDepositIndex, today } = detail;
-  return deposits
-    .filter((deposit) => deposit.index <= (currentDepositIndex ?? 1) + 1)
+  const { tontine, deposits, contributionsById, today } = detail;
+  return payableDeposits(deposits, today)
     .map((deposit) => {
       const contribution =
         contributionsById.get(contributionId(deposit.index, member.userId)) ?? null;
@@ -79,7 +81,7 @@ function depositOptionLabel(round) {
  * - isRecording (organisateur) : le paiement est enregistré et confirmé tout de suite ;
  * - sinon, le membre déclare son paiement et l'organisateur le confirmera.
  */
-function PaymentForm({ detail, payer, isRecording, isSelf, requestedIndex }) {
+function PaymentForm({ detail, payer, isRecording, isSelf }) {
   const navigate = useNavigate();
   const { showSuccess } = useToast();
   const { tontine, actor } = detail;
@@ -87,9 +89,8 @@ function PaymentForm({ detail, payer, isRecording, isSelf, requestedIndex }) {
   const [fileError, setFileError] = useState('');
   const [formError, setFormError] = useState('');
   const declarable = declarableFor(payer, detail);
-  const defaultRound =
-    declarable.find((item) => item.round.index === requestedIndex)?.round.index ??
-    declarable[0]?.round.index;
+  // Le tour (ou dépôt) est choisi automatiquement : le plus ancien qui reste à payer.
+  const selected = declarable[0];
 
   const {
     register,
@@ -99,14 +100,11 @@ function PaymentForm({ detail, payer, isRecording, isSelf, requestedIndex }) {
   } = useForm({
     resolver: yupResolver(schemaFor(isRecording)),
     defaultValues: {
-      roundIndex: defaultRound ?? '',
       method: isRecording ? 'CASH' : 'WAVE',
       reference: '',
     },
   });
-  const watchedRound = useWatch({ control, name: 'roundIndex' });
   const isCash = useWatch({ control, name: 'method' }) === 'CASH';
-  const selected = declarable.find((item) => item.round.index === Number(watchedRound));
 
   if (declarable.length === 0) {
     return (
@@ -114,8 +112,8 @@ function PaymentForm({ detail, payer, isRecording, isSelf, requestedIndex }) {
         title="Rien à payer"
         message={
           isSelf
-            ? 'Vos cotisations sont déclarées ou confirmées jusqu’au prochain dépôt.'
-            : `Les cotisations de ${payer.displayName} sont déclarées ou confirmées jusqu’au prochain dépôt.`
+            ? 'Vous êtes à jour pour le tour en cours. Le tour suivant s’ouvrira dès que le pot aura été pris.'
+            : `${payer.displayName} est à jour pour le tour en cours. Le tour suivant s’ouvrira dès que le pot aura été pris.`
         }
       />
     );
@@ -169,31 +167,31 @@ function PaymentForm({ detail, payer, isRecording, isSelf, requestedIndex }) {
   return (
     <Form noValidate onSubmit={handleSubmit(onSubmit)}>
       <FormError message={formError} />
-      <TextField
-        label={(tontine.depositsPerRound ?? 1) > 1 ? 'Dépôt' : 'Tour'}
-        as="select"
-        registration={register('roundIndex')}
-        error={errors.roundIndex}
-      >
-        {declarable.map(({ round, status }) => (
-          <option key={round.index} value={round.index}>
-            {depositOptionLabel(round)}
-            {status === 'LATE' ? ' (en retard)' : status === 'REJECTED' ? ' (rejeté)' : ''}
-          </option>
-        ))}
-      </TextField>
-      {selected && (
-        <div className="p-3 bg-light rounded mb-3 d-flex justify-content-between align-items-center">
+      <div className="payment-target mb-3">
+        <div className="d-flex justify-content-between align-items-start gap-2">
           <div>
+            <div className="small text-secondary">Paiement pour le</div>
+            <div className="fw-bold">{depositOptionLabel(selected.round)}</div>
             <div className="small text-secondary">
-              {isRecording ? 'Montant reçu' : 'Montant à verser'}
-              {selected.contribution?.penaltyAmount > 0 && ' (pénalité comprise)'}
+              Bénéficiaire du pot : {selected.round.beneficiaryName}
             </div>
-            <AmountDisplay amount={selected.due} className="fs-4 fw-bold" />
           </div>
           <StatusBadge status={selected.status} />
         </div>
-      )}
+        <div className="mt-3">
+          <div className="small text-secondary">
+            {isRecording ? 'Montant reçu' : 'Montant à verser'}
+            {selected.contribution?.penaltyAmount > 0 && ' (pénalité comprise)'}
+          </div>
+          <AmountDisplay amount={selected.due} className="fs-4 fw-bold" />
+        </div>
+        {declarable.length > 1 && (
+          <div className="small text-danger mt-2">
+            Encore {declarable.length - 1} autre{declarable.length > 2 ? 's' : ''} paiement
+            {declarable.length > 2 ? 's' : ''} en attente après celui-ci.
+          </div>
+        )}
+      </div>
       {selected?.contribution?.rejectionReason && selected.status !== 'PENDING' && (
         <Alert variant="danger" className="small">
           Déclaration précédente rejetée : {selected.contribution.rejectionReason}
@@ -343,7 +341,6 @@ export default function DeclarePaymentPage() {
                   payer={payer}
                   isRecording={isManager}
                   isSelf={isSelf}
-                  requestedIndex={Number(searchParams.get('tour'))}
                 />
               )}
             </Card.Body>

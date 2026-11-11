@@ -13,6 +13,7 @@ import {
   getCurrentRoundIndex,
   getDueDate,
   getRoundState,
+  payableDeposits,
   shuffle,
   sumShares,
 } from './schedule';
@@ -149,15 +150,23 @@ describe('tour en cours', () => {
     { index: 3, dueDate: '2027-01-01', payoutStatus: 'PENDING' },
   ];
 
-  it('est le premier tour dont l’échéance n’est pas passée', () => {
-    expect(getCurrentRoundIndex(rounds, '2026-11-15')).toBe(2);
-    expect(getCurrentRoundIndex(rounds, '2026-12-01')).toBe(2);
-    expect(getCurrentRoundIndex(rounds, '2026-12-02')).toBe(3);
+  it('est le premier tour dont le pot n’a pas été pris, quelle que soit la date', () => {
+    expect(getCurrentRoundIndex(rounds)).toBe(2);
+    const taken = rounds.map((r, i) => (i === 1 ? { ...r, payoutStatus: 'RECEIVED' } : r));
+    expect(getCurrentRoundIndex(taken)).toBe(3);
   });
 
-  it('reste sur le premier pot non reçu quand tout est passé', () => {
-    expect(getCurrentRoundIndex(rounds, '2027-06-01')).toBe(2);
-    expect(getCurrentRoundIndex([], '2027-06-01')).toBeNull();
+  it('reste sur le dernier tour quand tous les pots sont pris', () => {
+    const done = rounds.map((r) => ({ ...r, payoutStatus: 'RECEIVED' }));
+    expect(getCurrentRoundIndex(done)).toBe(3);
+    expect(getCurrentRoundIndex([])).toBeNull();
+  });
+
+  it('ne propose de payer que le tour en cours, les tours passés et les dates échues', () => {
+    const deposits = buildDeposits(rounds);
+    expect(payableDeposits(deposits, '2026-11-15').map((d) => d.index)).toEqual([1, 2]);
+    // Le 1er janvier est arrivé : le tour 3 peut être payé, même si le pot 2 n'est pas pris.
+    expect(payableDeposits(deposits, '2027-01-01').map((d) => d.index)).toEqual([1, 2, 3]);
   });
 
   it('donne l’état de chaque tour', () => {
@@ -212,7 +221,12 @@ describe('dépôts plusieurs fois par tour', () => {
       beneficiaryName: 'Koffi',
     });
     expect(getCurrentDepositIndex(deposits, '2027-01-15')).toBe(15);
-    expect(getCurrentDepositIndex(deposits, '2030-01-01')).toBe(90);
+    // Tant que le pot du tour 1 n'est pas pris, on reste sur le tour 1.
+    expect(getCurrentDepositIndex(deposits, '2030-01-01')).toBe(30);
+    const afterFirstPot = buildDeposits(
+      buildRounds(tontine).map((r) => (r.index === 1 ? { ...r, payoutStatus: 'RECEIVED' } : r)),
+    );
+    expect(getCurrentDepositIndex(afterFirstPot, '2027-01-15')).toBe(31);
     expect(depositLabel(deposits[30])).toBe('dépôt du 31 janvier 2027 (tour n° 2)');
   });
 

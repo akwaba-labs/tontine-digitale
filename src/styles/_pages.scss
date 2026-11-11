@@ -842,3 +842,10 @@
   border: 1px solid rgba(#fff, 0.25);
   font-size: 0.9rem;
 }
+
+.payment-target {
+  padding: 1rem 1.1rem;
+  border-radius: 1rem;
+  background: $brand-cream;
+  border: 1px solid $brand-line;
+}
