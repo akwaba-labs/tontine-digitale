@@ -132,8 +132,9 @@ export default function TontineForm({
             </Col>
             <Col>
               <TextField
-                label="Fréquence"
+                label="Fréquence des tours"
                 as="select"
+                help="Chaque tour, tout le monde cotise et un membre prend le pot."
                 disabled={lockStructure}
                 registration={register('frequency')}
                 error={errors.frequency}

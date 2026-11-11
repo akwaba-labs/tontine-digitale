@@ -11,12 +11,29 @@ export const FREQUENCY = Object.freeze({
   WEEKLY: 'WEEKLY',
   BIWEEKLY: 'BIWEEKLY',
   MONTHLY: 'MONTHLY',
+  EVERY_2_MONTHS: 'EVERY_2_MONTHS',
+  QUARTERLY: 'QUARTERLY',
+  SEMIANNUAL: 'SEMIANNUAL',
+  EVERY_9_MONTHS: 'EVERY_9_MONTHS',
 });
 
 export const FREQUENCY_LABELS = Object.freeze({
   WEEKLY: 'Chaque semaine',
   BIWEEKLY: 'Toutes les deux semaines',
   MONTHLY: 'Chaque mois',
+  EVERY_2_MONTHS: 'Tous les 2 mois',
+  QUARTERLY: 'Tous les 3 mois',
+  SEMIANNUAL: 'Tous les 6 mois',
+  EVERY_9_MONTHS: 'Tous les 9 mois',
+});
+
+// Nombre de mois entre deux tours, pour les fréquences mensuelles et plus longues.
+export const MONTHS_PER_ROUND = Object.freeze({
+  MONTHLY: 1,
+  EVERY_2_MONTHS: 2,
+  QUARTERLY: 3,
+  SEMIANNUAL: 6,
+  EVERY_9_MONTHS: 9,
 });
 
 export const ORDER_MODE = Object.freeze({

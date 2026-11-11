@@ -43,6 +43,22 @@ describe('getDueDate', () => {
     expect(getDueDate('2027-12-29', 'MONTHLY', 3)).toBe('2028-02-29');
   });
 
+  it('espace les tours de 2, 3, 6 ou 9 mois', () => {
+    expect(generateDueDates('2026-01-15', 'EVERY_2_MONTHS', 3)).toEqual([
+      '2026-01-15',
+      '2026-03-15',
+      '2026-05-15',
+    ]);
+    expect(getDueDate('2026-01-15', 'QUARTERLY', 3)).toBe('2026-07-15');
+    expect(getDueDate('2026-01-15', 'SEMIANNUAL', 3)).toBe('2027-01-15');
+    expect(getDueDate('2026-01-15', 'EVERY_9_MONTHS', 2)).toBe('2026-10-15');
+  });
+
+  it('garde la fin de mois sur de longues périodes', () => {
+    expect(getDueDate('2026-08-31', 'SEMIANNUAL', 2)).toBe('2027-02-28');
+    expect(getDueDate('2026-08-31', 'SEMIANNUAL', 3)).toBe('2027-08-31');
+  });
+
   it('refuse un tour ou une fréquence invalides', () => {
     expect(() => getDueDate('2026-01-01', 'WEEKLY', 0)).toThrow(RangeError);
     expect(() => getDueDate('2026-01-01', 'DAILY', 1)).toThrow(RangeError);

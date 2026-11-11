@@ -150,6 +150,17 @@ describe('tontines — création', () => {
     );
   });
 
+  it('accepte les fréquences de 2, 3, 6 et 9 mois ; refuse une fréquence inconnue', async () => {
+    for (const frequency of ['EVERY_2_MONTHS', 'QUARTERLY', 'SEMIANNUAL', 'EVERY_9_MONTHS']) {
+      await assertSucceeds(
+        setDoc(doc(dbAs('zoe'), `tontines/t-${frequency}`), newTontine({ frequency })),
+      );
+    }
+    await assertFails(
+      setDoc(doc(dbAs('zoe'), 'tontines/t-daily'), newTontine({ frequency: 'DAILY' })),
+    );
+  });
+
   it('refuse un montant à virgule', async () => {
     await assertFails(setDoc(doc(dbAs('zoe'), 'tontines/t-new'), newTontine({ amount: 25000.5 })));
   });

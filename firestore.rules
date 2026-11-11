@@ -166,7 +166,7 @@ service cloud.firestore {
         && isText(d.name, 2, 80)
         && isText(d.description, 0, 500)
         && isIntBetween(d.amount, 100, 100000000)
-        && d.frequency in ['WEEKLY', 'BIWEEKLY', 'MONTHLY']
+        && d.frequency in ['WEEKLY', 'BIWEEKLY', 'MONTHLY', 'EVERY_2_MONTHS', 'QUARTERLY', 'SEMIANNUAL', 'EVERY_9_MONTHS']
         && isIsoDate(d.startDate)
         && isIntBetween(d.totalShares, 2, 60)
         && isIntBetween(d.graceDays, 0, 30)

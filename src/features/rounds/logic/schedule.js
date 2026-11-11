@@ -1,5 +1,10 @@
 import { addDays, addMonths } from '../../../shared/utils/dates';
-import { FREQUENCY, PAYOUT_STATUS, ROUND_STATE } from '../../../shared/constants/domain';
+import {
+  FREQUENCY,
+  MONTHS_PER_ROUND,
+  PAYOUT_STATUS,
+  ROUND_STATE,
+} from '../../../shared/constants/domain';
 
 /** Date d'échéance du tour n° `index` (1 = date de début). */
 export function getDueDate(startDate, frequency, index) {
@@ -7,17 +12,13 @@ export function getDueDate(startDate, frequency, index) {
     throw new RangeError(`Numéro de tour invalide : ${index}`);
   }
   const steps = index - 1;
-  switch (frequency) {
-    case FREQUENCY.WEEKLY:
-      return addDays(startDate, 7 * steps);
-    case FREQUENCY.BIWEEKLY:
-      return addDays(startDate, 14 * steps);
-    case FREQUENCY.MONTHLY:
-      // Toujours calculé depuis la date de début : le 31 reste le 31 quand le mois le permet.
-      return addMonths(startDate, steps);
-    default:
-      throw new RangeError(`Fréquence inconnue : ${frequency}`);
+  if (frequency === FREQUENCY.WEEKLY) return addDays(startDate, 7 * steps);
+  if (frequency === FREQUENCY.BIWEEKLY) return addDays(startDate, 14 * steps);
+  if (frequency in MONTHS_PER_ROUND) {
+    // Toujours calculé depuis la date de début : le 31 reste le 31 quand le mois le permet.
+    return addMonths(startDate, MONTHS_PER_ROUND[frequency] * steps);
   }
+  throw new RangeError(`Fréquence inconnue : ${frequency}`);
 }
 
 export function generateDueDates(startDate, frequency, count) {

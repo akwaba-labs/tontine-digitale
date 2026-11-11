@@ -26,24 +26,24 @@ lire avant d'être accepté.
 
 ## `tontines/{tontineId}`
 
-| Champ                        | Type      | Note                                                   |
-| ---------------------------- | --------- | ------------------------------------------------------ |
-| `name`, `description`        | string    |                                                        |
-| `amount`                     | int       | cotisation par part                                    |
-| `frequency`                  | string    | `WEEKLY` · `BIWEEKLY` · `MONTHLY`                      |
-| `startDate`                  | string    | `AAAA-MM-JJ`, échéance du tour 1                       |
-| `totalShares`                | int       | nombre de parts = nombre de tours                      |
-| `graceDays`, `penaltyAmount` | int       | règles de retard                                       |
-| `status`                     | string    | `DRAFT` → `ACTIVE` → `COMPLETED` (ou `CANCELLED`)      |
-| `ownerId`, `ownerName`       | string    | organisateur                                           |
-| `inviteCode`                 | string    | 6 caractères                                           |
-| `memberIds`                  | string[]  | membres acceptés (requêtes « mes tontines » et règles) |
-| `coOrganizerIds`             | string[]  | peuvent confirmer les paiements                        |
-| `orderMode`                  | string    | `MANUAL` · `DRAW`                                      |
-| `payoutOrder`                | object[]  | `{ memberId, memberName, shareNumber }` par part       |
-| `drawAt`, `drawBy`           | timestamp | tirage au sort : écrit une seule fois                  |
-| `activatedAt`, `closedAt`    | timestamp |                                                        |
-| `createdAt`, `updatedAt`     | timestamp |                                                        |
+| Champ                        | Type      | Note                                                                                                 |
+| ---------------------------- | --------- | ---------------------------------------------------------------------------------------------------- |
+| `name`, `description`        | string    |                                                                                                      |
+| `amount`                     | int       | cotisation par part                                                                                  |
+| `frequency`                  | string    | `WEEKLY` · `BIWEEKLY` · `MONTHLY` · `EVERY_2_MONTHS` · `QUARTERLY` · `SEMIANNUAL` · `EVERY_9_MONTHS` |
+| `startDate`                  | string    | `AAAA-MM-JJ`, échéance du tour 1                                                                     |
+| `totalShares`                | int       | nombre de parts = nombre de tours                                                                    |
+| `graceDays`, `penaltyAmount` | int       | règles de retard                                                                                     |
+| `status`                     | string    | `DRAFT` → `ACTIVE` → `COMPLETED` (ou `CANCELLED`)                                                    |
+| `ownerId`, `ownerName`       | string    | organisateur                                                                                         |
+| `inviteCode`                 | string    | 6 caractères                                                                                         |
+| `memberIds`                  | string[]  | membres acceptés (requêtes « mes tontines » et règles)                                               |
+| `coOrganizerIds`             | string[]  | peuvent confirmer les paiements                                                                      |
+| `orderMode`                  | string    | `MANUAL` · `DRAW`                                                                                    |
+| `payoutOrder`                | object[]  | `{ memberId, memberName, shareNumber }` par part                                                     |
+| `drawAt`, `drawBy`           | timestamp | tirage au sort : écrit une seule fois                                                                |
+| `activatedAt`, `closedAt`    | timestamp |                                                                                                      |
+| `createdAt`, `updatedAt`     | timestamp |                                                                                                      |
 
 Une fois `ACTIVE` : montant, fréquence, date de début, parts, ordre, membres et règles de retard
 sont figés par les règles de sécurité.
