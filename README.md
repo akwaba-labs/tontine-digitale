@@ -86,6 +86,7 @@ gauche sur ordinateur.
 
 | Commande                | Effet                                                        |
 | ----------------------- | ------------------------------------------------------------ |
+| `npm start`             | Émulateurs + application en une seule commande               |
 | `npm run dev`           | Serveur de développement (vrai projet, lit `.env`)           |
 | `npm run dev:emulators` | Serveur de développement branché sur les émulateurs          |
 | `npm run emulators`     | Démarre les émulateurs Firebase                              |
