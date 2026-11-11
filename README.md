@@ -30,7 +30,16 @@ npm install
 Le projet utilise l'identifiant fictif `demo-tontine-digitale` : le préfixe `demo-` permet de tout
 faire tourner en local, sans compte Firebase ni clé.
 
-Dans un premier terminal :
+**Le plus simple — une seule commande :**
+
+```bash
+npm start
+```
+
+Elle démarre les émulateurs **et** l'application ensemble ; `Ctrl+C` arrête tout.
+
+**Ou en deux terminaux** (pratique pour redémarrer l'app sans relancer les émulateurs). Dans un
+premier terminal :
 
 ```bash
 npm run emulators

@@ -16,7 +16,8 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "emulators": "firebase emulators:start --project demo-tontine-digitale --import=./emulator-data --export-on-exit=./emulator-data"
+    "emulators": "firebase emulators:start --project demo-tontine-digitale --import=./emulator-data --export-on-exit=./emulator-data",
+    "start": "firebase emulators:exec --ui \"vite --mode emulators\""
   },
   "dependencies": {
     "bootstrap": "^5.3.8",
