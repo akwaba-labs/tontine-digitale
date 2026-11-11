@@ -108,8 +108,8 @@ $bottom-nav-height: 4.25rem;
   padding-bottom: 2rem;
 }
 
-// Sur mobile, on laisse la place à la barre du bas
-@include media-breakpoint-down(md) {
+// Sur mobile et tablette, on laisse la place à la barre du bas
+@include media-breakpoint-down(lg) {
   .app-main--with-bottom-nav {
     padding-bottom: calc(#{$bottom-nav-height} + 1.5rem + env(safe-area-inset-bottom));
   }
@@ -293,3 +293,5 @@ $bottom-nav-height: 4.25rem;
   border-radius: $input-border-radius;
   border-color: $input-border-color;
 }
+@import 'shell';
+@import 'pages';

@@ -67,3 +67,8 @@ export function formatDateTime(value) {
 export function formatTime(value) {
   return formatInAppTimeZone(value, 'HH:mm');
 }
+
+/** « 2026-11-11 » : le jour (à Abidjan) d'un horodatage. */
+export function toAppIsoDate(value) {
+  return formatInAppTimeZone(value, 'yyyy-MM-dd');
+}

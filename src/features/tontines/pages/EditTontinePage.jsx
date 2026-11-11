@@ -1,4 +1,3 @@
-import { Col, Row } from 'react-bootstrap';
 import { Navigate, useNavigate, useParams } from 'react-router';
 import PageHeader from '../../../shared/components/PageHeader';
 import Loader from '../../../shared/components/Loader';
@@ -32,18 +31,14 @@ export default function EditTontinePage() {
   return (
     <>
       <PageHeader title="Modifier la tontine" subtitle={tontine.name} />
-      <Row>
-        <Col lg={8}>
-          <TontineForm
-            isEdit
-            defaultValues={tontine}
-            lockStructure={tontine.status !== TONTINE_STATUS.DRAFT}
-            lockOrder={Boolean(tontine.drawAt)}
-            onSubmit={onSubmit}
-            submitLabel="Enregistrer"
-          />
-        </Col>
-      </Row>
+      <TontineForm
+        isEdit
+        defaultValues={tontine}
+        lockStructure={tontine.status !== TONTINE_STATUS.DRAFT}
+        lockOrder={Boolean(tontine.drawAt)}
+        onSubmit={onSubmit}
+        submitLabel="Enregistrer"
+      />
     </>
   );
 }

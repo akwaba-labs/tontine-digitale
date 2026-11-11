@@ -6,7 +6,7 @@ import UnreadBadge from './UnreadBadge';
 /** Barre de navigation fixée en bas de l'écran, affichée uniquement sur mobile. */
 export default function BottomNav() {
   return (
-    <nav className="bottom-nav fixed-bottom d-md-none" aria-label="Navigation principale">
+    <nav className="bottom-nav fixed-bottom d-lg-none" aria-label="Navigation principale">
       <ul className="bottom-nav__list">
         {APP_NAV_ITEMS.map(({ to, label, icon: Icon, end, isPrimary }) => (
           <li key={to} className="bottom-nav__item">

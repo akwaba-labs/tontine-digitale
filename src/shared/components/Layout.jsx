@@ -6,6 +6,8 @@ import OfflineBanner from './OfflineBanner';
 import { APP_NAME } from '../../config/app';
 import AppNavbar from './AppNavbar';
 import BottomNav from './BottomNav';
+import AppSidebar from './AppSidebar';
+import AppTopbar from './AppTopbar';
 import BrandLogo, { BrandName } from './BrandLogo';
 import { ROUTES } from '../../app/routePaths';
 
@@ -32,23 +34,26 @@ function EmulatorBadge() {
   );
 }
 
-/** Mise en page des pages accessibles une fois connecté. */
+/** Mise en page de l'espace client : barre latérale (ordinateur), barre du haut, barre du bas (mobile). */
 export function AppLayout() {
   return (
-    <>
+    <div className="app-shell">
       <SkipLink />
-      <AppNavbar variant="app" />
-      <OfflineBanner />
-      <main id="main-content" className="app-main app-main--with-bottom-nav">
-        <Container>
-          <Suspense fallback={<Loader />}>
-            <Outlet />
-          </Suspense>
-        </Container>
-      </main>
+      <AppSidebar />
+      <div className="app-shell__main">
+        <AppTopbar />
+        <OfflineBanner />
+        <main id="main-content" className="app-main app-main--with-bottom-nav">
+          <div className="app-content">
+            <Suspense fallback={<Loader />}>
+              <Outlet />
+            </Suspense>
+          </div>
+        </main>
+      </div>
       <BottomNav />
       <EmulatorBadge />
-    </>
+    </div>
   );
 }
 

@@ -15,6 +15,7 @@ export const EditTontinePage = lazy(() => import('../features/tontines/pages/Edi
 export const DeclarePaymentPage = lazy(
   () => import('../features/contributions/pages/DeclarePaymentPage'),
 );
+export const OrganizerPage = lazy(() => import('../features/organizer/pages/OrganizerPage'));
 export const NotificationsPage = lazy(
   () => import('../features/notifications/pages/NotificationsPage'),
 );

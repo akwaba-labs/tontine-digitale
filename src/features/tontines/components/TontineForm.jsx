@@ -1,6 +1,7 @@
 import { Alert, Card, Col, Form, InputGroup, Row } from 'react-bootstrap';
 import { useForm, useWatch } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
+import { Dices, ListOrdered } from 'lucide-react';
 import TextField from '../../../shared/components/form/TextField';
 import SubmitButton from '../../../shared/components/form/SubmitButton';
 import AmountDisplay from '../../../shared/components/AmountDisplay';
@@ -24,40 +25,67 @@ const DEFAULT_VALUES = {
   orderMode: ORDER_MODE.DRAW,
 };
 
-function Preview({ amount, totalShares, startDate, frequency, depositsPerRound }) {
+function Step({ number, title, text }) {
+  return (
+    <div className="form-step">
+      <span className="form-step__number">{number}</span>
+      <div>
+        <h2 className="h5">{title}</h2>
+        {text && <p>{text}</p>}
+      </div>
+    </div>
+  );
+}
+
+/** Récapitulatif en direct : ce que les membres déposeront et recevront, et le calendrier. */
+function Summary({ name, amount, totalShares, startDate, frequency, depositsPerRound, children }) {
   const shares = Number(totalShares);
   const value = Number(amount);
   const perRound = Number(depositsPerRound);
-  if (
-    !Number.isInteger(value) ||
-    value <= 0 ||
-    !Number.isInteger(shares) ||
-    shares < 2 ||
-    !Number.isInteger(perRound) ||
-    perRound < 1 ||
-    !isIsoDate(startDate)
-  ) {
-    return null;
-  }
+  const isComplete =
+    Number.isInteger(value) &&
+    value > 0 &&
+    Number.isInteger(shares) &&
+    shares >= 2 &&
+    Number.isInteger(perRound) &&
+    perRound >= 1 &&
+    isIsoDate(startDate);
   const tontine = { startDate, frequency, depositsPerRound: perRound };
-  const firstPayout = getRoundDueDate(tontine, 1);
+
   return (
-    <Alert variant="success" className="mb-3">
-      {FREQUENCY_LABELS[frequency]}, chaque membre dépose{' '}
-      <strong>
-        <AmountDisplay amount={value} />
-      </strong>{' '}
-      par part.
-      <br />
-      {perRound === 1 ? 'À chaque dépôt' : `Tous les ${perRound} dépôts`}, un membre prend le pot de{' '}
-      <strong>
-        <AmountDisplay amount={value * shares * perRound} />
-      </strong>{' '}
-      (premier pot le {formatDate(firstPayout)}).
-      <br />
-      {shares} tours, du {formatDate(startDate)} au{' '}
-      {formatDate(getDueDate(startDate, frequency, shares * perRound))}.
-    </Alert>
+    <aside className="summary-card">
+      <div className="small text-uppercase fw-bold opacity-75">Récapitulatif</div>
+      <h2 className="h4 mt-1 mb-0">{name?.trim() || 'Nouvelle tontine'}</h2>
+      {isComplete ? (
+        <>
+          <div className="summary-card__pot">
+            <AmountDisplay amount={value * shares * perRound} />
+          </div>
+          <dl>
+            <dt>Dépôt par part</dt>
+            <dd>
+              <AmountDisplay amount={value} />
+            </dd>
+            <dt>Rythme</dt>
+            <dd>{FREQUENCY_LABELS[frequency]}</dd>
+            <dt>Remise du pot</dt>
+            <dd>{perRound === 1 ? 'à chaque dépôt' : `tous les ${perRound} dépôts`}</dd>
+            <dt>Tours</dt>
+            <dd>{shares}</dd>
+            <dt>Premier pot</dt>
+            <dd>{formatDate(getRoundDueDate(tontine, 1))}</dd>
+            <dt>Dernier pot</dt>
+            <dd>{formatDate(getDueDate(startDate, frequency, shares * perRound))}</dd>
+          </dl>
+        </>
+      ) : (
+        <p className="summary-card__empty mt-3">
+          Renseignez le dépôt, le nombre de parts et la date : le pot et le calendrier s’affichent
+          ici.
+        </p>
+      )}
+      {children}
+    </aside>
   );
 }
 
@@ -86,199 +114,235 @@ export default function TontineForm({
     defaultValues: { ...DEFAULT_VALUES, ...defaultValues },
   });
 
-  const [amount, totalShares, startDate, frequency, depositsPerRound] = useWatch({
+  const [name, amount, totalShares, startDate, frequency, depositsPerRound] = useWatch({
     control,
-    name: ['amount', 'totalShares', 'startDate', 'frequency', 'depositsPerRound'],
+    name: ['name', 'amount', 'totalShares', 'startDate', 'frequency', 'depositsPerRound'],
   });
 
   return (
     <Form noValidate onSubmit={handleSubmit(onSubmit)}>
-      <Card className="shadow-sm mb-3">
-        <Card.Body className="p-4">
-          <h2 className="h5 mb-3">La tontine</h2>
-          <TextField
-            label="Nom"
-            placeholder="Ex. Tontine des commerçantes"
-            registration={register('name')}
-            error={errors.name}
-          />
-          <TextField
-            label="Description (facultatif)"
-            as="textarea"
-            rows={2}
-            registration={register('description')}
-            error={errors.description}
-          />
-        </Card.Body>
-      </Card>
+      <Row className="g-4">
+        <Col lg={8}>
+          <Card className="shadow-sm mb-3">
+            <Card.Body className="p-4">
+              <Step
+                number={1}
+                title="La tontine"
+                text="Un nom que tous les membres reconnaîtront."
+              />
+              <TextField
+                label="Nom"
+                placeholder="Ex. Tontine des commerçantes"
+                registration={register('name')}
+                error={errors.name}
+              />
+              <TextField
+                label="Description (facultatif)"
+                as="textarea"
+                rows={2}
+                registration={register('description')}
+                error={errors.description}
+              />
+            </Card.Body>
+          </Card>
 
-      <Card className="shadow-sm mb-3">
-        <Card.Body className="p-4">
-          <h2 className="h5 mb-3">Dépôts et calendrier</h2>
-          {lockStructure && (
-            <Alert variant="info">
-              La tontine a démarré : le montant, la fréquence, le calendrier et les règles de retard
-              ne peuvent plus changer.
-            </Alert>
-          )}
-          <Row xs={1} md={2}>
-            <Col>
-              <Form.Group className="mb-3" controlId="amount">
-                <Form.Label className="fw-semibold">Dépôt par part</Form.Label>
-                <InputGroup hasValidation>
-                  <Form.Control
+          <Card className="shadow-sm mb-3">
+            <Card.Body className="p-4">
+              <Step
+                number={2}
+                title="Dépôts et calendrier"
+                text="Combien chacun dépose, à quel rythme, et quand un membre prend le pot."
+              />
+              {lockStructure && (
+                <Alert variant="info">
+                  La tontine a démarré : le montant, la fréquence, le calendrier et les règles de
+                  retard ne peuvent plus changer.
+                </Alert>
+              )}
+              <Row xs={1} md={2}>
+                <Col>
+                  <Form.Group className="mb-3" controlId="amount">
+                    <Form.Label className="fw-semibold">Dépôt par part</Form.Label>
+                    <InputGroup hasValidation>
+                      <Form.Control
+                        type="number"
+                        inputMode="numeric"
+                        min={100}
+                        step={1}
+                        readOnly={lockStructure}
+                        isInvalid={Boolean(errors.amount)}
+                        {...register('amount')}
+                      />
+                      <InputGroup.Text>FCFA</InputGroup.Text>
+                      <Form.Control.Feedback type="invalid">
+                        {errors.amount?.message}
+                      </Form.Control.Feedback>
+                    </InputGroup>
+                  </Form.Group>
+                </Col>
+                <Col>
+                  <TextField
+                    label="Fréquence des dépôts"
+                    as="select"
+                    help="À quel rythme chaque membre fait son dépôt."
+                    disabled={lockStructure}
+                    registration={register('frequency')}
+                    error={errors.frequency}
+                  >
+                    {Object.entries(FREQUENCY_LABELS).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </TextField>
+                </Col>
+                <Col>
+                  <TextField
+                    label="Remise du pot : tous les … dépôts"
                     type="number"
                     inputMode="numeric"
-                    min={100}
-                    step={1}
+                    min={1}
                     readOnly={lockStructure}
-                    isInvalid={Boolean(errors.amount)}
-                    {...register('amount')}
+                    help="1 = un membre prend le pot à chaque dépôt. Ex. dépôts chaque jour et 30 ici : le pot est remis tous les 30 jours."
+                    registration={register('depositsPerRound')}
+                    error={errors.depositsPerRound}
                   />
-                  <InputGroup.Text>FCFA</InputGroup.Text>
-                  <Form.Control.Feedback type="invalid">
-                    {errors.amount?.message}
-                  </Form.Control.Feedback>
-                </InputGroup>
-              </Form.Group>
-            </Col>
-            <Col>
-              <TextField
-                label="Fréquence des dépôts"
-                as="select"
-                help="À quel rythme chaque membre fait son dépôt."
-                disabled={lockStructure}
-                registration={register('frequency')}
-                error={errors.frequency}
-              >
-                {Object.entries(FREQUENCY_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </TextField>
-            </Col>
-            <Col>
-              <TextField
-                label="Remise du pot : tous les … dépôts"
-                type="number"
-                inputMode="numeric"
-                min={1}
-                readOnly={lockStructure}
-                help="1 = un membre prend le pot à chaque dépôt. Ex. dépôts chaque jour et 30 ici : le pot est remis tous les 30 jours."
-                registration={register('depositsPerRound')}
-                error={errors.depositsPerRound}
+                </Col>
+                <Col>
+                  <TextField
+                    label="Date du premier dépôt"
+                    type="date"
+                    readOnly={lockStructure}
+                    registration={register('startDate')}
+                    error={errors.startDate}
+                  />
+                </Col>
+                <Col>
+                  <TextField
+                    label="Nombre de parts (= nombre de tours)"
+                    type="number"
+                    inputMode="numeric"
+                    min={2}
+                    readOnly={lockStructure || lockOrder}
+                    help="Une personne peut avoir plusieurs parts : elle cotise et reçoit plusieurs fois."
+                    registration={register('totalShares')}
+                    error={errors.totalShares}
+                  />
+                </Col>
+                {!isEdit && (
+                  <Col>
+                    <TextField
+                      label="Vos parts (organisateur)"
+                      type="number"
+                      inputMode="numeric"
+                      min={1}
+                      registration={register('ownerShares')}
+                      error={errors.ownerShares}
+                    />
+                  </Col>
+                )}
+              </Row>
+            </Card.Body>
+          </Card>
+
+          <Card className="shadow-sm mb-3">
+            <Card.Body className="p-4">
+              <Step
+                number={3}
+                title="Retards"
+                text="Ce qui se passe quand un dépôt arrive en retard."
               />
-            </Col>
-            <Col>
-              <TextField
-                label="Date du premier dépôt"
-                type="date"
-                readOnly={lockStructure}
-                registration={register('startDate')}
-                error={errors.startDate}
-              />
-            </Col>
-            <Col>
-              <TextField
-                label="Nombre de parts (= nombre de tours)"
-                type="number"
-                inputMode="numeric"
-                min={2}
-                readOnly={lockStructure || lockOrder}
-                help="Une personne peut avoir plusieurs parts : elle cotise et reçoit plusieurs fois."
-                registration={register('totalShares')}
-                error={errors.totalShares}
-              />
-            </Col>
-            {!isEdit && (
-              <Col>
-                <TextField
-                  label="Vos parts (organisateur)"
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  registration={register('ownerShares')}
-                  error={errors.ownerShares}
-                />
-              </Col>
-            )}
-          </Row>
-          <Preview
+              <Row xs={1} md={2}>
+                <Col>
+                  <TextField
+                    label="Délai de grâce (jours)"
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    readOnly={lockStructure}
+                    help="Jours après l’échéance avant d’être « en retard »."
+                    registration={register('graceDays')}
+                    error={errors.graceDays}
+                  />
+                </Col>
+                <Col>
+                  <Form.Group className="mb-3" controlId="penaltyAmount">
+                    <Form.Label className="fw-semibold">Pénalité de retard</Form.Label>
+                    <InputGroup hasValidation>
+                      <Form.Control
+                        type="number"
+                        inputMode="numeric"
+                        min={0}
+                        readOnly={lockStructure}
+                        isInvalid={Boolean(errors.penaltyAmount)}
+                        aria-describedby="penalty-help"
+                        {...register('penaltyAmount')}
+                      />
+                      <InputGroup.Text>FCFA</InputGroup.Text>
+                      <Form.Control.Feedback type="invalid">
+                        {errors.penaltyAmount?.message}
+                      </Form.Control.Feedback>
+                    </InputGroup>
+                    <Form.Text id="penalty-help">0 = pas de pénalité.</Form.Text>
+                  </Form.Group>
+                </Col>
+              </Row>
+            </Card.Body>
+          </Card>
+
+          {!lockStructure && !lockOrder && (
+            <Card className="shadow-sm mb-3">
+              <Card.Body className="p-4">
+                <Step number={4} title="Ordre des tours" text="Qui prend le pot en premier ?" />
+                <div className="choice-cards">
+                  <label className="choice-card" htmlFor="order-draw">
+                    <input
+                      type="radio"
+                      id="order-draw"
+                      value={ORDER_MODE.DRAW}
+                      {...register('orderMode')}
+                    />
+                    <Dices size={22} aria-hidden="true" />
+                    <strong>Tirage au sort</strong>
+                    <span>Fait dans l’application, enregistré, impossible à relancer.</span>
+                  </label>
+                  <label className="choice-card" htmlFor="order-manual">
+                    <input
+                      type="radio"
+                      id="order-manual"
+                      value={ORDER_MODE.MANUAL}
+                      {...register('orderMode')}
+                    />
+                    <ListOrdered size={22} aria-hidden="true" />
+                    <strong>Je choisis l’ordre</strong>
+                    <span>Vous placez les membres vous-même avant de démarrer.</span>
+                  </label>
+                </div>
+              </Card.Body>
+            </Card>
+          )}
+
+          <div className="d-lg-none">
+            <SubmitButton isSubmitting={isSubmitting}>{submitLabel}</SubmitButton>
+          </div>
+        </Col>
+        <Col lg={4}>
+          <Summary
+            name={name}
             amount={amount}
             totalShares={totalShares}
             startDate={startDate}
             frequency={frequency}
             depositsPerRound={depositsPerRound}
-          />
-        </Card.Body>
-      </Card>
-
-      <Card className="shadow-sm mb-3">
-        <Card.Body className="p-4">
-          <h2 className="h5 mb-3">Retards</h2>
-          <Row xs={1} md={2}>
-            <Col>
-              <TextField
-                label="Délai de grâce (jours)"
-                type="number"
-                inputMode="numeric"
-                min={0}
-                readOnly={lockStructure}
-                help="Jours après l’échéance avant d’être « en retard »."
-                registration={register('graceDays')}
-                error={errors.graceDays}
-              />
-            </Col>
-            <Col>
-              <Form.Group className="mb-3" controlId="penaltyAmount">
-                <Form.Label className="fw-semibold">Pénalité de retard</Form.Label>
-                <InputGroup hasValidation>
-                  <Form.Control
-                    type="number"
-                    inputMode="numeric"
-                    min={0}
-                    readOnly={lockStructure}
-                    isInvalid={Boolean(errors.penaltyAmount)}
-                    aria-describedby="penalty-help"
-                    {...register('penaltyAmount')}
-                  />
-                  <InputGroup.Text>FCFA</InputGroup.Text>
-                  <Form.Control.Feedback type="invalid">
-                    {errors.penaltyAmount?.message}
-                  </Form.Control.Feedback>
-                </InputGroup>
-                <Form.Text id="penalty-help">0 = pas de pénalité.</Form.Text>
-              </Form.Group>
-            </Col>
-          </Row>
-        </Card.Body>
-      </Card>
-
-      {!lockStructure && !lockOrder && (
-        <Card className="shadow-sm mb-3">
-          <Card.Body className="p-4">
-            <h2 className="h5 mb-3">Ordre des tours</h2>
-            <Form.Check
-              type="radio"
-              id="order-draw"
-              value={ORDER_MODE.DRAW}
-              label="Tirage au sort dans l’application (résultat enregistré, impossible à relancer)"
-              className="mb-2"
-              {...register('orderMode')}
-            />
-            <Form.Check
-              type="radio"
-              id="order-manual"
-              value={ORDER_MODE.MANUAL}
-              label="Je choisis l’ordre moi-même"
-              {...register('orderMode')}
-            />
-          </Card.Body>
-        </Card>
-      )}
-
-      <SubmitButton isSubmitting={isSubmitting}>{submitLabel}</SubmitButton>
+          >
+            <div className="d-none d-lg-block mt-4">
+              <SubmitButton isSubmitting={isSubmitting} variant="warning">
+                {submitLabel}
+              </SubmitButton>
+            </div>
+          </Summary>
+        </Col>
+      </Row>
     </Form>
   );
 }

@@ -17,6 +17,7 @@ import {
   EditTontinePage,
   DeclarePaymentPage,
   NotificationsPage,
+  OrganizerPage,
 } from './lazyPages';
 
 // Définition des routes, partagée entre l'application et les tests.
@@ -44,6 +45,7 @@ export const appRoutes = [
           { path: ROUTES.join, element: <JoinTontinePage /> },
           { path: ROUTES.joinWithCode, element: <JoinTontinePage /> },
           { path: ROUTES.dashboard, element: <DashboardPage /> },
+          { path: ROUTES.organizer, element: <OrganizerPage /> },
           { path: ROUTES.tontines, element: <TontineListPage /> },
           { path: ROUTES.createTontine, element: <CreateTontinePage /> },
           { path: ROUTES.tontineDetail, element: <TontineDetailPage /> },
@@ -56,5 +58,5 @@ export const appRoutes = [
       },
     ],
   },
-  { element: <AppLayout />, children: [{ path: '*', element: <NotFoundPage /> }] },
+  { element: <PublicLayout />, children: [{ path: '*', element: <NotFoundPage /> }] },
 ];

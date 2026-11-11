@@ -1,4 +1,3 @@
-import { Col, Row } from 'react-bootstrap';
 import { useNavigate } from 'react-router';
 import PageHeader from '../../../shared/components/PageHeader';
 import { useActor, useAuth } from '../../../shared/hooks/useAuth';
@@ -26,11 +25,7 @@ export default function CreateTontinePage() {
         title="Créer une tontine"
         subtitle="Vous pourrez inviter les membres juste après."
       />
-      <Row>
-        <Col lg={8}>
-          <TontineForm onSubmit={onSubmit} submitLabel="Créer la tontine" />
-        </Col>
-      </Row>
+      <TontineForm onSubmit={onSubmit} submitLabel="Créer la tontine" />
     </>
   );
 }

@@ -7,6 +7,12 @@ export const ROUTES = Object.freeze({
   join: '/rejoindre',
   joinWithCode: '/rejoindre/:inviteCode',
   dashboard: '/tableau-de-bord',
+  organizer: '/organisateur',
+  admin: '/admin',
+  adminUsers: '/admin/utilisateurs',
+  adminTontines: '/admin/tontines',
+  adminTontineDetail: '/admin/tontines/:tontineId',
+  adminMails: '/admin/e-mails',
   tontines: '/tontines',
   createTontine: '/tontines/nouvelle',
   tontineDetail: '/tontines/:tontineId',
@@ -42,4 +48,8 @@ export function joinPath(inviteCode) {
 export function safeRedirect(path) {
   if (typeof path === 'string' && path.startsWith('/') && !path.startsWith('//')) return path;
   return ROUTES.dashboard;
+}
+
+export function adminTontinePath(tontineId) {
+  return `/admin/tontines/${encodeURIComponent(tontineId)}`;
 }

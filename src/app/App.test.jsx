@@ -28,6 +28,10 @@ vi.mock('../features/auth/services/userService', () => ({
   updateUserProfile: vi.fn(),
   uploadAvatar: vi.fn(),
   removeAvatar: vi.fn(),
+  subscribeAdminFlag: (uid, onData) => {
+    onData(state.isAdmin ?? false);
+    return () => {};
+  },
 }));
 
 vi.mock('../features/notifications/services/notificationService', () => ({

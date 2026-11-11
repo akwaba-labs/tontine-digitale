@@ -1,0 +1,226 @@
+// Espace client : barre latérale, barre du haut, contenu.
+
+$sidebar-width: 16.5rem;
+
+.app-shell {
+  min-height: 100vh;
+
+  @include media-breakpoint-up(lg) {
+    display: flex;
+  }
+
+  &__main {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}
+
+.app-content {
+  max-width: 76rem;
+  margin: 0 auto;
+  padding: 0 1rem;
+
+  @include media-breakpoint-up(lg) {
+    padding: 0 2rem;
+  }
+}
+
+// --- Barre latérale ---------------------------------------------------------------------
+.app-sidebar {
+  position: sticky;
+  top: 0;
+  flex-direction: column;
+  flex: 0 0 $sidebar-width;
+  width: $sidebar-width;
+  height: 100vh;
+  padding: 1.25rem 0.9rem 1rem;
+  background: #fff;
+  border-right: 1px solid $brand-line;
+
+  &__brand {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.25rem 0.6rem 1.25rem;
+    text-decoration: none;
+    font-size: 1.1rem;
+  }
+
+  &__nav {
+    flex: 1 1 auto;
+    overflow-y: auto;
+  }
+
+  &__section + &__section {
+    margin-top: 1.25rem;
+  }
+
+  &__title {
+    padding: 0 0.75rem 0.4rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: $brand-terracotta;
+  }
+
+  &__link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.75rem;
+    margin-bottom: 0.15rem;
+    border-radius: 0.75rem;
+    color: $secondary;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background-color 0.15s ease;
+
+    &:hover {
+      background: $brand-cream;
+      color: $brand-ink;
+    }
+
+    &.active {
+      background: rgba($primary, 0.1);
+      color: $primary;
+      font-weight: 700;
+
+      svg {
+        color: $primary;
+      }
+    }
+
+    &--admin {
+      color: $brand-ink;
+      background: $brand-sand;
+    }
+  }
+
+  &__user {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 1rem;
+    padding: 0.75rem;
+    border-radius: 1rem;
+    background: $brand-cream;
+    border: 1px solid $brand-line;
+  }
+}
+
+.min-w-0 {
+  min-width: 0;
+}
+
+.sidebar-count {
+  min-width: 1.4rem;
+  padding: 0.05rem 0.45rem;
+  border-radius: 50rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: center;
+  color: #fff;
+  background: $danger;
+
+  &--warning {
+    background: $brand-saffron;
+    color: $brand-ink;
+  }
+}
+
+// --- Barre du haut ----------------------------------------------------------------------
+.app-topbar {
+  position: sticky;
+  top: 0;
+  z-index: $zindex-sticky;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  height: 4rem;
+  padding: 0 1rem;
+  background: rgba($brand-cream, 0.92);
+  backdrop-filter: saturate(1.4) blur(8px);
+  border-bottom: 1px solid $brand-line;
+
+  @include media-breakpoint-up(lg) {
+    padding: 0 2rem;
+  }
+
+  &__icon {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    color: $secondary;
+
+    &:hover {
+      background: #fff;
+      color: $brand-ink;
+    }
+  }
+
+  &__badge {
+    position: absolute;
+    top: 0.1rem;
+    right: 0.05rem;
+    font-size: 0.65rem;
+  }
+}
+
+// --- Avatar -----------------------------------------------------------------------------
+.user-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+
+  &--initials {
+    color: #fff;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+}
+
+// --- Bascule membre / organisateur -------------------------------------------------------
+.space-switch {
+  display: inline-flex;
+  padding: 0.25rem;
+  margin-bottom: 1.25rem;
+  border-radius: 50rem;
+  background: #fff;
+  border: 1px solid $brand-line;
+
+  &__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem 1rem;
+    border-radius: 50rem;
+    color: $secondary;
+    font-weight: 600;
+    font-size: 0.92rem;
+    text-decoration: none;
+
+    &.active {
+      background: $brand-ink;
+      color: #fff;
+    }
+  }
+
+  &__count {
+    min-width: 1.3rem;
+    padding: 0 0.4rem;
+    border-radius: 50rem;
+    background: $brand-saffron;
+    color: $brand-ink;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-align: center;
+  }
+}

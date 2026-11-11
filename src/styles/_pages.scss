@@ -1,0 +1,844 @@
+// Composants des pages de l'espace client et du back-office.
+
+// --- Panneaux et en-têtes de section -----------------------------------------------------
+.panel {
+  padding: 1.25rem;
+  border-radius: 1.25rem;
+  background: #fff;
+  border: 1px solid $brand-line;
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  &__title {
+    margin: 0;
+    font-family: $font-family-sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+
+  &__count {
+    min-width: 1.6rem;
+    padding: 0.1rem 0.55rem;
+    border-radius: 50rem;
+    background: $brand-saffron;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-align: center;
+  }
+}
+
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+
+  &__title {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 700;
+  }
+
+  &__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+}
+
+// --- Bandeau du tableau de bord -----------------------------------------------------------
+.dash-hero {
+  position: relative;
+  display: grid;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+  padding: 1.75rem;
+  border-radius: 1.5rem;
+  overflow: hidden;
+  background-color: $primary;
+  background-image: $wax-pattern;
+  background-size: 56px;
+  background-blend-mode: soft-light;
+  color: #fff;
+
+  @include media-breakpoint-up(md) {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    padding: 2.25rem;
+  }
+
+  &--ink {
+    background-color: $brand-ink;
+  }
+
+  &__date {
+    font-size: 0.9rem;
+    opacity: 0.8;
+
+    &::first-letter {
+      text-transform: uppercase;
+    }
+  }
+
+  &__title {
+    margin: 0.2rem 0 0.75rem;
+    color: #fff;
+    font-size: clamp(1.8rem, 5vw, 2.5rem);
+  }
+
+  &__text {
+    max-width: 34rem;
+    margin-bottom: 1.25rem;
+    font-size: 1.05rem;
+    opacity: 0.95;
+  }
+
+  &__payout {
+    display: grid;
+    gap: 0.15rem;
+    min-width: 15rem;
+    padding: 1.25rem;
+    border-radius: 1.1rem;
+    background: rgba(#fff, 0.12);
+    border: 1px solid rgba(#fff, 0.25);
+    color: #fff;
+    font-size: 0.9rem;
+    backdrop-filter: blur(4px);
+
+    svg {
+      color: $brand-saffron;
+      margin-bottom: 0.25rem;
+    }
+
+    &:hover {
+      background: rgba(#fff, 0.18);
+      color: #fff;
+    }
+  }
+
+  &__payout-label {
+    opacity: 0.85;
+  }
+
+  &__payout-amount {
+    font-size: 1.6rem;
+    color: $brand-saffron;
+  }
+
+  &__stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+}
+
+// --- Tuiles de chiffres clés --------------------------------------------------------------
+.stat-tile {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  height: 100%;
+  padding: 1.1rem;
+  border-radius: 1.1rem;
+  background: #fff;
+  border: 1px solid $brand-line;
+
+  @include media-breakpoint-down(sm) {
+    flex-direction: column;
+    gap: 0.6rem;
+    padding: 0.9rem;
+  }
+
+  &__icon {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 0.8rem;
+    background: rgba($primary, 0.1);
+    color: $primary;
+  }
+
+  &--saffron &__icon {
+    background: rgba($brand-saffron, 0.2);
+    color: darken($brand-saffron, 25%);
+  }
+
+  &--red &__icon {
+    background: rgba($danger, 0.1);
+    color: $danger;
+  }
+
+  &--blue &__icon {
+    background: rgba($info, 0.1);
+    color: $info;
+  }
+
+  &--neutral &__icon {
+    background: $brand-sand;
+    color: $secondary;
+  }
+
+  &__label {
+    font-size: 0.85rem;
+    color: $secondary;
+  }
+
+  &__value {
+    font-size: clamp(1.05rem, 3.5vw, 1.4rem);
+    font-weight: 700;
+    line-height: 1.25;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__hint {
+    font-size: 0.8rem;
+    color: $secondary;
+  }
+}
+
+// --- Liste « à faire » --------------------------------------------------------------------
+.todo-list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.todo-item {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.8rem 0.9rem;
+  border-radius: 0.9rem;
+  background: $brand-cream;
+  color: $brand-ink;
+  text-decoration: none;
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background: $brand-sand;
+    color: $brand-ink;
+  }
+
+  &__tontine {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: $secondary;
+  }
+
+  &__text {
+    display: block;
+  }
+}
+
+.icon-bubble {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 50%;
+  background: rgba($info, 0.12);
+  color: $info;
+
+  &--danger {
+    background: rgba($danger, 0.1);
+    color: $danger;
+  }
+
+  &--warning {
+    background: rgba($brand-saffron, 0.22);
+    color: darken($brand-saffron, 28%);
+  }
+
+  &--success {
+    background: rgba($primary, 0.12);
+    color: $primary;
+  }
+
+  &--neutral {
+    background: $brand-sand;
+    color: $secondary;
+  }
+}
+
+.all-clear {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1rem;
+  border-radius: 0.9rem;
+  background: rgba($primary, 0.07);
+  color: $primary;
+}
+
+// --- Chronologie --------------------------------------------------------------------------
+.agenda {
+  position: relative;
+  margin: 0;
+  padding: 0 0 0 1.4rem;
+  list-style: none;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0.4rem;
+    top: 0.4rem;
+    bottom: 0.4rem;
+    border-left: 2px dashed $brand-line;
+  }
+
+  &__item {
+    position: relative;
+    padding-bottom: 1rem;
+
+    &:last-child {
+      padding-bottom: 0;
+    }
+  }
+
+  &__dot {
+    position: absolute;
+    left: -1.35rem;
+    top: 0.3rem;
+    width: 0.85rem;
+    height: 0.85rem;
+    border-radius: 50%;
+    background: #fff;
+    border: 3px solid $brand-saffron;
+  }
+
+  &__item--payout &__dot {
+    border-color: $primary;
+    background: $primary;
+  }
+
+  &__date {
+    font-size: 0.78rem;
+    color: $secondary;
+  }
+}
+
+// --- Carte de tontine ---------------------------------------------------------------------
+.tontine-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  height: 100%;
+  padding: 1.25rem;
+  border-radius: 1.25rem;
+  background: #fff;
+  border: 1px solid $brand-line;
+  border-top: 5px solid $primary;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(61, 44, 18, 0.08);
+  }
+
+  &--draft {
+    border-top-color: $brand-saffron;
+  }
+
+  &--completed,
+  &--cancelled {
+    border-top-color: $gray-400;
+  }
+
+  &__top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  &__role {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: $secondary;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 700;
+
+    a {
+      color: $brand-ink;
+      text-decoration: none;
+    }
+  }
+
+  &__figures {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    padding: 0.85rem;
+    border-radius: 0.9rem;
+    background: $brand-cream;
+  }
+
+  &__label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: $secondary;
+  }
+
+  &__sub {
+    font-size: 0.8rem;
+    color: $secondary;
+  }
+
+  &__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    font-size: 0.88rem;
+    color: $secondary;
+
+    span {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+  }
+
+  &__footer {
+    margin-top: auto;
+    padding-top: 0.85rem;
+    border-top: 1px dashed $brand-line;
+    font-size: 0.9rem;
+  }
+
+  &__arrow {
+    position: absolute;
+    top: 1.25rem;
+    right: 1.25rem;
+    display: none;
+    color: $secondary;
+  }
+}
+
+.mini-progress {
+  height: 0.45rem;
+  border-radius: 1rem;
+  background: $brand-sand;
+  overflow: hidden;
+
+  span {
+    display: block;
+    height: 100%;
+    border-radius: 1rem;
+    background: $primary;
+  }
+}
+
+// --- Raccourcis ---------------------------------------------------------------------------
+.quick-actions {
+  display: grid;
+  gap: 0.75rem;
+
+  @include media-breakpoint-up(sm) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.quick-action {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 1rem 1.1rem;
+  border-radius: 1rem;
+  border: 2px dashed $brand-line;
+  color: $brand-ink;
+  text-decoration: none;
+
+  svg {
+    color: $primary;
+  }
+
+  strong,
+  small {
+    display: block;
+  }
+
+  small {
+    color: $secondary;
+  }
+
+  &:hover {
+    border-color: $primary;
+    background: #fff;
+    color: $brand-ink;
+  }
+}
+
+// --- Filtres (onglets en pastilles) -------------------------------------------------------
+.filter-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.95rem;
+  border-radius: 50rem;
+  border: 1px solid $brand-line;
+  background: #fff;
+  color: $secondary;
+  font-weight: 600;
+  font-size: 0.9rem;
+
+  &.is-active {
+    background: $brand-ink;
+    border-color: $brand-ink;
+    color: #fff;
+  }
+
+  .count {
+    padding: 0 0.45rem;
+    border-radius: 50rem;
+    background: rgba($brand-ink, 0.08);
+    font-size: 0.78rem;
+  }
+
+  &.is-active .count {
+    background: rgba(#fff, 0.2);
+  }
+}
+
+.search-field {
+  position: relative;
+
+  svg {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: $secondary;
+  }
+
+  .form-control {
+    padding-left: 2.75rem;
+    border-radius: 50rem;
+  }
+}
+
+// --- En-tête de page riche ----------------------------------------------------------------
+.page-intro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+
+  h1 {
+    margin: 0;
+    font-size: clamp(1.8rem, 5vw, 2.3rem);
+  }
+
+  &__sub {
+    color: $secondary;
+  }
+}
+
+// --- Notifications ------------------------------------------------------------------------
+.notif-day {
+  margin: 1.5rem 0 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: $brand-terracotta;
+}
+
+.notif {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+  padding: 0.95rem 1rem;
+  border-radius: 1rem;
+  background: #fff;
+  border: 1px solid $brand-line;
+
+  & + & {
+    margin-top: 0.5rem;
+  }
+
+  &--unread {
+    border-color: rgba($primary, 0.35);
+    box-shadow: inset 4px 0 0 $primary;
+  }
+
+  &__body {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    text-align: left;
+  }
+
+  &__time {
+    font-size: 0.8rem;
+    color: $secondary;
+  }
+
+  &__dot {
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    margin-right: 0.4rem;
+    border-radius: 50%;
+    background: $primary;
+    vertical-align: middle;
+  }
+}
+
+// --- Profil -------------------------------------------------------------------------------
+.profile-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+  padding: 1.75rem;
+  border-radius: 1.5rem;
+  background-color: $brand-ink;
+  background-image: $wax-pattern;
+  background-size: 56px;
+  background-blend-mode: soft-light;
+  color: #fff;
+
+  .user-avatar {
+    border: 4px solid rgba(#fff, 0.85);
+  }
+
+  h1 {
+    margin: 0;
+    color: #fff;
+    font-size: clamp(1.6rem, 5vw, 2.2rem);
+  }
+
+  &__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.25rem;
+    margin-top: 0.35rem;
+    font-size: 0.92rem;
+    opacity: 0.85;
+
+    span {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+  }
+}
+
+// --- Formulaire de création : étapes et récapitulatif -------------------------------------
+.form-step {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.1rem;
+
+  &__number {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background: $brand-ink;
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+
+  h2 {
+    margin: 0;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.88rem;
+    color: $secondary;
+  }
+}
+
+.summary-card {
+  position: sticky;
+  top: 5rem;
+  padding: 1.5rem;
+  border-radius: 1.25rem;
+  background-color: $primary;
+  background-image: $wax-pattern;
+  background-size: 48px;
+  background-blend-mode: soft-light;
+  color: #fff;
+
+  h2 {
+    color: #fff;
+  }
+
+  &__pot {
+    margin: 0.5rem 0 1rem;
+    font-size: 2rem;
+    font-weight: 700;
+    color: $brand-saffron;
+    line-height: 1.1;
+  }
+
+  dl {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.45rem 1rem;
+    margin: 0;
+    font-size: 0.92rem;
+  }
+
+  dt {
+    font-weight: 400;
+    opacity: 0.8;
+  }
+
+  dd {
+    margin: 0;
+    font-weight: 600;
+    text-align: right;
+  }
+
+  &__empty {
+    opacity: 0.85;
+  }
+}
+
+// --- Espace organisateur ------------------------------------------------------------------
+.org-row {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px dashed $brand-line;
+
+  &:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  &:first-child {
+    padding-top: 0;
+  }
+}
+
+.collect-card {
+  height: 100%;
+  padding: 1.25rem;
+  border-radius: 1.25rem;
+  background: #fff;
+  border: 1px solid $brand-line;
+
+  &__title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+
+    a {
+      color: $brand-ink;
+      text-decoration: none;
+    }
+  }
+
+  &__rate {
+    font-size: 1.8rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+}
+
+// Choix sous forme de cartes (boutons radio)
+.choice-cards {
+  display: grid;
+  gap: 0.75rem;
+
+  @include media-breakpoint-up(sm) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.choice-card {
+  position: relative;
+  display: grid;
+  gap: 0.25rem;
+  padding: 1rem 1rem 1rem 1rem;
+  border-radius: 1rem;
+  border: 2px solid $brand-line;
+  background: #fff;
+  cursor: pointer;
+
+  input {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    accent-color: $primary;
+  }
+
+  svg {
+    color: $primary;
+  }
+
+  span {
+    font-size: 0.88rem;
+    color: $secondary;
+  }
+
+  &:has(input:checked) {
+    border-color: $primary;
+    background: rgba($primary, 0.05);
+  }
+
+  &:has(input:focus-visible) {
+    outline: 3px solid rgba($primary, 0.35);
+    outline-offset: 2px;
+  }
+}
+
+.hero-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: 50rem;
+  background: rgba(#fff, 0.14);
+  border: 1px solid rgba(#fff, 0.25);
+  font-size: 0.9rem;
+}

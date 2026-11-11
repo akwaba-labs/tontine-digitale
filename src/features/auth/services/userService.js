@@ -73,3 +73,15 @@ export async function deleteUserProfile(uid) {
   }
   await deleteDoc(userRef(uid));
 }
+
+/**
+ * Administrateur de la plateforme (back-office) : document admins/{uid}, créé uniquement par
+ * le script « npm run make-admin » (jamais depuis l'application).
+ */
+export function subscribeAdminFlag(uid, onData) {
+  return onSnapshot(
+    doc(db, 'admins', uid),
+    (snapshot) => onData(snapshot.exists()),
+    () => onData(false),
+  );
+}
