@@ -3,6 +3,7 @@ import { deleteObject, getDownloadURL, ref, uploadBytes } from 'firebase/storage
 import { db, storage } from '../../../config/firebase';
 import { normalizePhone } from '../../../shared/utils/formatPhone';
 import { compressImage } from '../../../shared/utils/compressImage';
+import { fromSnapshot } from '../../../shared/services/firestoreUtils';
 
 const userRef = (uid) => doc(db, 'users', uid);
 
@@ -30,12 +31,13 @@ export function updateUserProfile(uid, { firstName, lastName, phone }) {
 export function subscribeUserProfile(uid, onData, onError) {
   return onSnapshot(
     userRef(uid),
-    (snapshot) =>
-      onData(
-        snapshot.exists()
-          ? { id: snapshot.id, ...snapshot.data({ serverTimestamps: 'estimate' }) }
-          : null,
-      ),
+    { includeMetadataChanges: true },
+    (snapshot) => {
+      // Hors ligne ou connexion lente : « absent du cache » ne veut pas dire « inexistant ».
+      // On attend la réponse du serveur avant de conclure qu'il faut compléter le profil.
+      if (!snapshot.exists() && snapshot.metadata.fromCache) return;
+      onData(fromSnapshot(snapshot));
+    },
     onError,
   );
 }

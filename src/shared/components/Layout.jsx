@@ -2,6 +2,7 @@ import { Badge, Container } from 'react-bootstrap';
 import { Suspense } from 'react';
 import { Outlet } from 'react-router';
 import Loader from './Loader';
+import OfflineBanner from './OfflineBanner';
 import { APP_NAME } from '../../config/app';
 import AppNavbar from './AppNavbar';
 import BottomNav from './BottomNav';
@@ -35,6 +36,7 @@ export function AppLayout() {
     <>
       <SkipLink />
       <AppNavbar variant="app" />
+      <OfflineBanner />
       <main id="main-content" className="app-main app-main--with-bottom-nav">
         <Container>
           <Suspense fallback={<Loader />}>

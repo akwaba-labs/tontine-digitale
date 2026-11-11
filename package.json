@@ -18,7 +18,12 @@
     "test:watch": "vitest",
     "emulators": "firebase emulators:start --project demo-tontine-digitale --import=./emulator-data --export-on-exit=./emulator-data",
     "start": "firebase emulators:exec --ui \"vite --mode emulators\"",
-    "test:rules": "firebase emulators:exec --config firebase.rules-test.json --only auth,firestore,storage --project demo-tontine-rules \"vitest run --config vitest.rules.config.js\""
+    "test:rules": "firebase emulators:exec --config firebase.rules-test.json --only auth,firestore,storage --project demo-tontine-rules \"vitest run --config vitest.rules.config.js\"",
+    "seed": "node scripts/seed.js",
+    "start:demo": "firebase emulators:exec --ui \"node scripts/seed.js && vite --mode emulators\"",
+    "deploy": "npm run lint && npm test && npm run build && firebase deploy",
+    "deploy:hosting": "npm run build && firebase deploy --only hosting",
+    "deploy:rules": "firebase deploy --only firestore:rules,firestore:indexes,storage"
   },
   "dependencies": {
     "@hookform/resolvers": "^7.0.5",

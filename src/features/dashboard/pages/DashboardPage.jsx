@@ -24,9 +24,9 @@ function TotalTile({ label, children }) {
   return (
     <Col>
       <Card className="shadow-sm h-100 text-center">
-        <Card.Body className="py-3">
+        <Card.Body className="py-3 px-2">
           <div className="small text-secondary">{label}</div>
-          <div className="fs-5 fw-bold">{children}</div>
+          <div className="total-value fw-bold">{children}</div>
         </Card.Body>
       </Card>
     </Col>

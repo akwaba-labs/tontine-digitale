@@ -144,7 +144,16 @@ export function subscribeMyTontines(uid, onData, onError) {
 }
 
 export function subscribeTontine(tontineId, onData, onError) {
-  return onSnapshot(tontineRef(tontineId), (snapshot) => onData(fromSnapshot(snapshot)), onError);
+  return onSnapshot(
+    tontineRef(tontineId),
+    { includeMetadataChanges: true },
+    (snapshot) => {
+      // Absent du cache local ≠ introuvable : on attend le serveur (connexions lentes).
+      if (!snapshot.exists() && snapshot.metadata.fromCache) return;
+      onData(fromSnapshot(snapshot));
+    },
+    onError,
+  );
 }
 
 /** Modifie les paramètres. Après le démarrage, seuls le nom et la description changent. */

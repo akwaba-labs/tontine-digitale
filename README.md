@@ -71,30 +71,59 @@ gauche sur ordinateur.
 5. Remplacer `demo-tontine-digitale` par l'ID du projet dans `.firebaserc`.
 6. Lancer `npm run dev`.
 
-| Variable                            | Rôle                                              |
-| ----------------------------------- | ------------------------------------------------- |
-| `VITE_FIREBASE_API_KEY`             | Clé Web du projet                                 |
-| `VITE_FIREBASE_AUTH_DOMAIN`         | Domaine d'authentification                        |
-| `VITE_FIREBASE_PROJECT_ID`          | Identifiant du projet                             |
-| `VITE_FIREBASE_STORAGE_BUCKET`      | Bucket Storage (preuves de paiement)              |
-| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Expéditeur (notifications push, phase ultérieure) |
-| `VITE_FIREBASE_APP_ID`              | Identifiant de l'application Web                  |
-| `VITE_USE_EMULATORS`                | `true` pour utiliser les émulateurs locaux        |
-| `VITE_EMULATOR_HOST`                | Hôte des émulateurs (`127.0.0.1` par défaut)      |
+| Variable                             | Rôle                                              |
+| ------------------------------------ | ------------------------------------------------- |
+| `VITE_FIREBASE_API_KEY`              | Clé Web du projet                                 |
+| `VITE_FIREBASE_AUTH_DOMAIN`          | Domaine d'authentification                        |
+| `VITE_FIREBASE_PROJECT_ID`           | Identifiant du projet                             |
+| `VITE_FIREBASE_STORAGE_BUCKET`       | Bucket Storage (preuves de paiement)              |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID`  | Expéditeur (notifications push, phase ultérieure) |
+| `VITE_FIREBASE_APP_ID`               | Identifiant de l'application Web                  |
+| `VITE_USE_EMULATORS`                 | `true` pour utiliser les émulateurs locaux        |
+| `VITE_EMULATOR_HOST`                 | Hôte des émulateurs (`127.0.0.1` par défaut)      |
+| `VITE_RECAPTCHA_ENTERPRISE_SITE_KEY` | Clé de site App Check (production, voir plus bas) |
+| `VITE_APPCHECK_DEBUG_TOKEN`          | Jeton de débogage App Check (développement)       |
 
 ## Scripts
 
-| Commande                | Effet                                                        |
-| ----------------------- | ------------------------------------------------------------ |
-| `npm start`             | Émulateurs + application en une seule commande               |
-| `npm run dev`           | Serveur de développement (vrai projet, lit `.env`)           |
-| `npm run dev:emulators` | Serveur de développement branché sur les émulateurs          |
-| `npm run emulators`     | Démarre les émulateurs Firebase                              |
-| `npm run build`         | Build de production dans `dist/`                             |
-| `npm run preview`       | Sert le build localement                                     |
-| `npm run lint`          | ESLint                                                       |
-| `npm run format`        | Formate le code avec Prettier (`format:check` pour vérifier) |
-| `npm test`              | Lance les tests une fois (`npm run test:watch` en continu)   |
+| Commande                 | Effet                                                         |
+| ------------------------ | ------------------------------------------------------------- |
+| `npm start`              | Émulateurs + application en une seule commande                |
+| `npm run start:demo`     | Idem, avec les données de démonstration déjà chargées         |
+| `npm run seed`           | Charge les données de démonstration (émulateurs lancés)       |
+| `npm run dev`            | Serveur de développement (vrai projet, lit `.env`)            |
+| `npm run dev:emulators`  | Serveur de développement branché sur les émulateurs           |
+| `npm run emulators`      | Démarre les émulateurs Firebase                               |
+| `npm run build`          | Build de production dans `dist/`                              |
+| `npm run preview`        | Sert le build localement                                      |
+| `npm run lint`           | ESLint                                                        |
+| `npm run format`         | Formate le code avec Prettier (`format:check` pour vérifier)  |
+| `npm test`               | Lance les tests une fois (`npm run test:watch` en continu)    |
+| `npm run test:rules`     | Tests des règles de sécurité (démarre ses propres émulateurs) |
+| `npm run deploy`         | Lint + tests + build, puis déploie tout sur Firebase          |
+| `npm run deploy:hosting` | Build puis déploie uniquement l'application                   |
+| `npm run deploy:rules`   | Déploie uniquement les règles et index Firestore/Storage      |
+
+## Données de démonstration
+
+Avec les émulateurs lancés, `npm run seed` crée trois comptes (mot de passe `demo1234`) :
+
+| Compte            | Rôle                                             |
+| ----------------- | ------------------------------------------------ |
+| `aminata@demo.ci` | Organise « Tontine des commerçantes » (en cours) |
+| `bakary@demo.ci`  | Organise « Tontine du bureau » (en préparation)  |
+| `chantal@demo.ci` | Membre, avec des paiements à différents statuts  |
+
+Le script refuse de tourner sur un projet qui ne commence pas par `demo-`.
+
+## Application installable et hors ligne
+
+- L'application est une **PWA** : sur mobile, « Ajouter à l'écran d'accueil » l'installe comme une
+  application. Les mises à jour s'appliquent automatiquement au rechargement suivant.
+- Les données déjà consultées restent en **cache local** (IndexedDB) : elles s'affichent hors ligne
+  et instantanément sur les connexions lentes. Un bandeau signale l'absence de réseau ; les actions
+  faites hors ligne sont envoyées au retour de la connexion.
+- Les preuves de paiement (photos) nécessitent une connexion pour être envoyées.
 
 ## Structure
 
@@ -143,10 +172,48 @@ hooks) ; la logique métier est écrite en fonctions pures testées.
 ## Avancement
 
 - [x] Phase 1 — Initialisation, thème, structure, Firebase + émulateurs, ESLint/Prettier, layout
-- [ ] Phase 2 — Modèle de données Firestore, règles de sécurité et leurs tests
-- [ ] Phase 3 — Authentification et profil
-- [ ] Phases 4 à 9 — voir le cahier des charges
+- [x] Phase 2 — Modèle de données Firestore, règles de sécurité et leurs tests
+- [x] Phase 3 — Authentification et profil
+- [x] Phases 4 à 7 — Tontines, membres, tours, cotisations, tableau de bord, notifications
+- [x] Phase 8 — PWA, mode hors ligne, données de démonstration, finitions mobiles
+- [x] Phase 9 — Déploiement (Hosting, en-têtes, App Check)
 
 ## Déploiement
 
-Décrit en phase 9 (Firebase Hosting, App Check).
+Prérequis : avoir suivi « Brancher un vrai projet Firebase » ci-dessus (`.env` rempli,
+`.firebaserc` pointant sur le vrai projet), puis se connecter une fois :
+
+```bash
+npx firebase login
+```
+
+1. **Règles et index** (à faire avant la première mise en ligne, puis à chaque modification) :
+   `npm run deploy:rules`.
+2. **Application** : `npm run deploy` (vérifie lint et tests, construit `dist/`, déploie tout).
+   L'URL publique s'affiche à la fin (`https://<projet>.web.app`).
+3. **Domaine d'authentification** : dans la console, Authentication → Paramètres → Domaines
+   autorisés, ajouter le domaine personnalisé s'il y en a un.
+
+### App Check (recommandé en production)
+
+App Check garantit que seules les requêtes venant de l'application atteignent Firestore et
+Storage.
+
+1. Console Google Cloud : activer l'API **reCAPTCHA Enterprise** et créer une clé de site « Web »
+   pour le domaine de l'application.
+2. Console Firebase → App Check : enregistrer l'application Web avec le fournisseur reCAPTCHA
+   Enterprise et cette clé.
+3. Mettre la clé dans `VITE_RECAPTCHA_ENTERPRISE_SITE_KEY` (fichier `.env`), puis redéployer.
+4. Observer les métriques App Check quelques jours, puis cliquer **Appliquer** (enforce) pour
+   Firestore et Storage.
+
+Pour développer contre le vrai projet avec App Check appliqué : lancer l'app une fois, copier le
+jeton de débogage affiché dans la console du navigateur, l'enregistrer dans App Check → Gérer les
+jetons de débogage, et le mettre dans `VITE_APPCHECK_DEBUG_TOKEN`. Les émulateurs n'utilisent
+jamais App Check.
+
+### En-têtes servis
+
+`firebase.json` configure : cache d'un an pour `/assets/**` (fichiers versionnés), `no-cache`
+pour les pages, `sw.js` et le manifeste (les mises à jour arrivent tout de suite), et des en-têtes
+de sécurité (`nosniff`, `Referrer-Policy`, `X-Frame-Options`).

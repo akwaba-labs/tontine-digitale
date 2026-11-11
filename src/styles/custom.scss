@@ -55,6 +55,7 @@ $bottom-nav-height: 4.25rem;
   background: #fff;
   border-top: 1px solid $border-color;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+  overflow-x: clip; // jamais de défilement horizontal (le bouton « Créer » dépasse en hauteur)
 
   &__list {
     display: flex;
@@ -137,6 +138,7 @@ $bottom-nav-height: 4.25rem;
 
 // Onglets défilables sur petits écrans
 .nav-tabs-scroll {
+  position: relative; // contient les textes masqués (lecteurs d'écran) des badges
   flex-wrap: nowrap;
   overflow-x: auto;
   overflow-y: hidden;
@@ -173,4 +175,9 @@ $bottom-nav-height: 4.25rem;
 .notification-unread {
   background: rgba($primary, 0.06);
   border-left: 4px solid $primary !important;
+}
+
+// Montants des tuiles du tableau de bord : lisibles même sur petit écran
+.total-value {
+  font-size: clamp(0.9rem, 4.2vw, 1.25rem);
 }
