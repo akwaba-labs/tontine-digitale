@@ -10,14 +10,23 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+// Grands titres en serif gras (comme les titres de section du site de référence),
+// titres de cartes et petits titres en Ubuntu gras.
 h1,
 .h1,
 h2,
 .h2,
 .display-5,
 .display-6 {
-  letter-spacing: -0.025em;
-  font-variation-settings: 'wdth' 92;
+  font-family: $font-family-serif;
+  letter-spacing: -0.01em;
+}
+
+.h3,
+.h4,
+.h5,
+.h6 {
+  font-family: $font-family-sans-serif;
 }
 
 .font-display {
@@ -112,9 +121,9 @@ $bottom-nav-height: 4.25rem;
 }
 
 .brand-name {
-  font-family: $font-family-display;
-  font-weight: 800;
-  letter-spacing: -0.03em;
+  font-family: $font-family-sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   color: $brand-ink;
 
   em {
@@ -133,6 +142,12 @@ $bottom-nav-height: 4.25rem;
     color: $secondary;
     border-radius: 50rem;
     padding-inline: 0.85rem !important;
+    white-space: nowrap;
+
+    @include media-breakpoint-down(lg) {
+      padding-inline: 0.5rem !important;
+      font-size: 0.92rem;
+    }
 
     &.active {
       color: $primary;
@@ -204,7 +219,7 @@ $bottom-nav-height: 4.25rem;
 
   h1 {
     font-size: 1.75rem;
-    font-weight: 800;
+    font-weight: 700;
     margin-bottom: 0.25rem;
   }
 }

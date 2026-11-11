@@ -24,14 +24,16 @@ $border-color: $brand-line;
 
 // Polices auto-hébergées (disponibles hors ligne via la PWA)
 $font-family-sans-serif:
-  'Figtree Variable',
+  'Ubuntu',
   system-ui,
   -apple-system,
   'Segoe UI',
   Roboto,
   sans-serif;
-$font-family-display: 'Bricolage Grotesque Variable', $font-family-sans-serif;
-$headings-font-family: $font-family-display;
+// Titres : serif gras (style « Times »), texte : Ubuntu.
+$font-family-serif: 'Tinos', 'Times New Roman', Times, serif;
+$font-family-display: $font-family-serif;
+$headings-font-family: $font-family-sans-serif;
 $font-size-base: 1.0625rem; // 17 px : plus lisible sur téléphone
 $headings-font-weight: 700;
 $headings-color: $brand-ink;

@@ -29,8 +29,8 @@
     "digest": "npm run build:functions && node functions/lib/run-digest.js"
   },
   "dependencies": {
-    "@fontsource-variable/bricolage-grotesque": "^5.3.0",
-    "@fontsource-variable/figtree": "^5.3.0",
+    "@fontsource/tinos": "^5.3.0",
+    "@fontsource/ubuntu": "^5.3.0",
     "@hookform/resolvers": "^7.0.5",
     "bootstrap": "^5.3.8",
     "date-fns": "^4.4.0",
