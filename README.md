@@ -124,19 +124,21 @@ L'organisateur peut ajouter une personne qui n'utilisera pas l'application (ongl
 elle la remise du pot. Son téléphone est visible des membres ; son e-mail, facultatif, reste visible
 par l'organisateur seul et sert uniquement à lui envoyer les e-mails.
 
-## E-mails
+## E-mails : résumé quotidien
 
-À **chaque événement** d'une tontine (paiement déclaré, confirmé, rejeté, nouveau membre, tirage
-au sort, versement du pot…), la Cloud Function `emailMembersOnEvent` envoie un e-mail à tous les
-membres actifs, sauf l'auteur de l'action. Le texte est la même phrase que dans l'onglet
-Historique. Chaque utilisateur peut couper ces e-mails dans **Paramètres**.
+Chaque soir à **19 h (heure d'Abidjan)**, la Cloud Function planifiée `sendDailyDigest` envoie à
+chaque membre **un seul e-mail** qui résume l'activité de la journée dans toutes ses tontines
+(paiements déclarés, confirmés ou rejetés, nouveaux membres, tirage au sort, versement du pot…).
+Ses propres actions n'y figurent pas, et rien n'est envoyé s'il n'y a rien de nouveau. Les phrases
+sont celles de l'onglet Historique. Chacun peut couper le résumé dans **Paramètres**. Les membres
+sans compte le reçoivent si l'organisateur a saisi leur e-mail.
 
-- **En local** : `npm start` lance aussi la fonction ; sans serveur SMTP, les e-mails sont
-  **simulés** et visibles dans l'interface des émulateurs (http://127.0.0.1:4000 → Firestore →
-  collection `mailLog`).
-- **En production** : les Cloud Functions demandent le **forfait Blaze** (paiement à l'usage ; le
-  quota gratuit couvre largement une petite application). Il faut un service d'envoi SMTP, par
-  exemple Brevo (300 e-mails/jour gratuits) :
+- **En local** : les fonctions planifiées ne se déclenchent pas seules dans les émulateurs.
+  Lancer `npm run digest` (émulateurs démarrés) pour produire le résumé des dernières 24 h ; les
+  e-mails sont **simulés** et visibles dans http://127.0.0.1:4000 → Firestore → `mailLog`.
+- **En production** : les Cloud Functions et Cloud Scheduler demandent le **forfait Blaze**
+  (paiement à l'usage ; le quota gratuit couvre largement une petite application). Il faut un
+  service d'envoi SMTP, par exemple Brevo (300 e-mails/jour gratuits) :
   1. Copier `functions/.env.example` en `functions/.env.<id-du-projet>` et le remplir (`APP_URL`,
      `MAIL_FROM`, `SMTP_HOST`, `SMTP_USER`, et `FUNCTIONS_REGION` = région de la base Firestore).
   2. Enregistrer le mot de passe SMTP comme secret : `npx firebase functions:secrets:set SMTP_PASS`.

@@ -62,3 +62,8 @@ export function formatDayAndMonth(value) {
 export function formatDateTime(value) {
   return formatInAppTimeZone(value, "d MMM yyyy 'à' HH:mm");
 }
+
+/** « 14:30 » */
+export function formatTime(value) {
+  return formatInAppTimeZone(value, 'HH:mm');
+}

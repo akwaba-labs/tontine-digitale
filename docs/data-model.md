@@ -12,7 +12,7 @@ d'heure, pas d'ambiguïté. Les montants sont des **entiers** en FCFA.
 | `email`                  | string              |                                |
 | `phone`                  | string              | `+225XXXXXXXXXX` (10 chiffres) |
 | `photoURL`               | string \| null      | Storage `avatars/{uid}/…`      |
-| `emailNotifications`     | bool (absent = oui) | e-mail à chaque activité       |
+| `emailNotifications`     | bool (absent = oui) | résumé quotidien par e-mail    |
 | `createdAt`, `updatedAt` | timestamp           |                                |
 
 Lisible uniquement par son propriétaire. Le nom et le téléphone utiles aux autres membres sont
@@ -101,12 +101,17 @@ Créées par l'application dans le même lot que l'action. Les rappels « c'est 
 « échéance proche » sont calculés à l'affichage (les rappels automatiques par Cloud Functions sont
 prévus pour une version ultérieure).
 
-## `mailLog/{eventId}_{memberId}` — e-mails envoyés
+## `mailLog/digest_{date}_{memberId}` — résumés quotidiens envoyés
 
-Écrit uniquement par la Cloud Function `emailMembersOnEvent` (aucun accès depuis l'application) :
-`tontineId, eventId, eventType, to, subject, status (PENDING | SENT | SIMULATED | FAILED), error,
-createdAt, sentAt`. L'identifiant garantit un seul e-mail par événement et par destinataire, même
-si le déclencheur est rejoué. En mode simulé (émulateurs), le texte de l'e-mail est aussi stocké.
+Écrit uniquement par la Cloud Function `sendDailyDigest` (aucun accès depuis l'application) :
+`kind, to, subject, tontineIds, eventCount, status (PENDING | SENT | SIMULATED | FAILED), error,
+createdAt, sentAt`. L'identifiant garantit un seul résumé par jour et par destinataire, même si la
+fonction est relancée. En mode simulé (émulateurs), le texte de l'e-mail est aussi stocké.
+
+## `digestState/daily`
+
+`lastUntil, lastStats` : fin de la période couverte par le dernier résumé. Le suivant reprend à
+partir de là : aucun événement oublié ni envoyé deux fois. Aucun accès depuis l'application.
 
 ## Storage
 

@@ -1,40 +1,21 @@
-// Contenu des e-mails envoyés aux membres à chaque événement d'une tontine.
+// Résumé quotidien par e-mail : contenu et destinataires.
 // Fonctions pures (testées) : aucune dépendance à Firebase ici.
 //
 // Les phrases viennent du même code que l'onglet « Historique » de l'application
 // (describeEvent) : l'e-mail dit exactement ce que les membres verront dans le journal.
 import { describeEvent } from '../../src/features/tontines/logic/eventLabels.js';
 import { EVENT_TYPES, MEMBER_STATUS } from '../../src/shared/constants/domain.js';
+import { formatDayAndMonth, formatTime } from '../../src/shared/utils/formatDate.js';
 import { APP_NAME } from '../../src/config/app.js';
 
-const SUBJECTS = {
-  [EVENT_TYPES.TONTINE_UPDATED]: 'Paramètres modifiés',
-  [EVENT_TYPES.TONTINE_STARTED]: 'La tontine a démarré',
-  [EVENT_TYPES.TONTINE_COMPLETED]: 'La tontine est terminée',
-  [EVENT_TYPES.TONTINE_CANCELLED]: 'La tontine est annulée',
-  [EVENT_TYPES.MEMBER_ACCEPTED]: 'Nouveau membre',
-  [EVENT_TYPES.MEMBER_ADDED]: 'Nouveau membre',
-  [EVENT_TYPES.MEMBER_REFUSED]: 'Demande non acceptée',
-  [EVENT_TYPES.MEMBER_REMOVED]: 'Un membre a été retiré',
-  [EVENT_TYPES.MEMBER_LEFT]: 'Un membre est parti',
-  [EVENT_TYPES.MEMBER_ROLE_CHANGED]: 'Changement de rôle',
-  [EVENT_TYPES.MEMBER_SHARES_CHANGED]: 'Parts modifiées',
-  [EVENT_TYPES.ORDER_SET]: 'Ordre de passage fixé',
-  [EVENT_TYPES.DRAW_PERFORMED]: 'Résultat du tirage au sort',
-  [EVENT_TYPES.PAYMENT_DECLARED]: 'Paiement déclaré',
-  [EVENT_TYPES.PAYMENT_CONFIRMED]: 'Paiement confirmé',
-  [EVENT_TYPES.PAYMENT_REJECTED]: 'Paiement rejeté',
-  [EVENT_TYPES.PAYMENT_RECORDED]: 'Paiement enregistré',
-  [EVENT_TYPES.PENALTY_APPLIED]: 'Pénalité de retard',
-  [EVENT_TYPES.PAYOUT_SENT]: 'Pot versé',
-  [EVENT_TYPES.PAYOUT_RECEIVED]: 'Pot reçu',
-};
+// Au-delà, le résumé renvoie vers l'historique de l'application.
+export const MAX_EVENTS_PER_TONTINE = 15;
 
 // La personne refusée ou retirée n'est plus membre active, mais elle doit être prévenue.
 const CONCERNS_TARGET = [EVENT_TYPES.MEMBER_REFUSED, EVENT_TYPES.MEMBER_REMOVED];
 
 /**
- * Qui reçoit l'e-mail : tous les membres actifs (avec ou sans compte), sauf l'auteur de l'action,
+ * Qui doit voir un événement : tous les membres actifs (avec ou sans compte), sauf son auteur,
  * plus la personne concernée par un refus ou un retrait.
  */
 export function selectRecipientIds(event, members) {
@@ -48,6 +29,31 @@ export function selectRecipientIds(event, members) {
   return [...ids];
 }
 
+/**
+ * Regroupe les événements de la journée par destinataire, puis par tontine.
+ * `activity` : [{ tontine, members, events }] (événements triés par date).
+ * Renvoie Map(memberId → [{ tontine, member, events }]).
+ */
+export function groupDigests(activity) {
+  const digests = new Map();
+  for (const { tontine, members, events } of activity) {
+    const byId = new Map(members.map((m) => [m.userId, m]));
+    const perMember = new Map();
+    for (const event of events) {
+      for (const memberId of selectRecipientIds(event, members)) {
+        if (!byId.has(memberId)) continue;
+        if (!perMember.has(memberId)) perMember.set(memberId, []);
+        perMember.get(memberId).push(event);
+      }
+    }
+    for (const [memberId, memberEvents] of perMember) {
+      if (!digests.has(memberId)) digests.set(memberId, []);
+      digests.get(memberId).push({ tontine, member: byId.get(memberId), events: memberEvents });
+    }
+  }
+  return digests;
+}
+
 export function escapeHtml(value) {
   return String(value)
     .replaceAll('&', '&amp;')
@@ -57,54 +63,94 @@ export function escapeHtml(value) {
     .replaceAll("'", '&#39;');
 }
 
+const plural = (n, singular, pluralForm = `${singular}s`) =>
+  `${n} ${n > 1 ? pluralForm : singular}`;
+
 /**
- * Construit l'e-mail pour un destinataire.
+ * Construit le résumé d'un destinataire.
  * Les membres sans compte n'ont pas de lien vers l'application (ils ne peuvent pas s'y connecter).
  */
-export function buildEmail({ event, tontine, recipientName, isGuest, appUrl }) {
-  const sentence = describeEvent(event);
-  const subject = `${tontine.name} · ${SUBJECTS[event.type] ?? 'Nouvelle activité'}`;
-  const link = `${appUrl.replace(/\/$/, '')}/tontines/${encodeURIComponent(tontine.id)}?onglet=historique`;
+export function buildDigestEmail({ sections, recipientName, isGuest, appUrl, date }) {
+  const base = appUrl.replace(/\/$/, '');
+  const total = sections.reduce((sum, s) => sum + s.events.length, 0);
+  const day = formatDayAndMonth(date);
+  const subject =
+    sections.length === 1
+      ? `${sections[0].tontine.name} · résumé du ${day} (${plural(total, 'nouveauté')})`
+      : `Vos tontines · résumé du ${day} (${plural(total, 'nouveauté')})`;
   const greeting = recipientName ? `Bonjour ${recipientName},` : 'Bonjour,';
+  const intro = `Voici ce qui s’est passé aujourd’hui dans ${sections.length > 1 ? 'vos tontines' : 'votre tontine'}.`;
   const footer = isGuest
-    ? `Vous recevez cet e-mail car l’organisateur de « ${tontine.name} » vous a inscrit avec cette adresse. Pour ne plus le recevoir, demandez-lui de la retirer.`
-    : `Vous recevez cet e-mail car vous êtes membre de « ${tontine.name} ». Pour ne plus recevoir ces e-mails : ${APP_NAME} › Paramètres.`;
+    ? 'Vous recevez ce résumé car l’organisateur de la tontine vous a inscrit avec cette adresse. Pour ne plus le recevoir, demandez-lui de la retirer.'
+    : `Vous recevez ce résumé car vous êtes membre de ces tontines. Pour ne plus le recevoir : ${APP_NAME} › Paramètres.`;
+
+  const prepared = sections.map(({ tontine, events }) => ({
+    name: tontine.name,
+    link: `${base}/tontines/${encodeURIComponent(tontine.id)}?onglet=historique`,
+    lines: events.slice(0, MAX_EVENTS_PER_TONTINE).map((event) => ({
+      time: event.createdAt ? formatTime(event.createdAt) : '',
+      sentence: describeEvent(event),
+    })),
+    hidden: Math.max(0, events.length - MAX_EVENTS_PER_TONTINE),
+  }));
 
   const text = [
     greeting,
     '',
-    `Du nouveau dans la tontine « ${tontine.name} » :`,
-    sentence,
+    intro,
+    ...prepared.flatMap((s) => [
+      '',
+      `« ${s.name} »`,
+      ...s.lines.map((l) => `- ${l.time ? `${l.time} · ` : ''}${l.sentence}`),
+      ...(s.hidden ? [`- … et ${plural(s.hidden, 'autre activité', 'autres activités')}.`] : []),
+      ...(isGuest ? [] : [`Voir la tontine : ${s.link}`]),
+    ]),
     '',
-    ...(isGuest ? [] : [`Voir la tontine : ${link}`, '']),
     '—',
     footer,
   ].join('\n');
 
-  const html = `<!doctype html>
-<html lang="fr">
-  <body style="margin:0;padding:24px 12px;background:#fbf7ef;font-family:Arial,Helvetica,sans-serif;color:#1b2420">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto;background:#ffffff;border:1px solid #e9dfcc;border-radius:16px">
+  const sectionHtml = (s) => `
       <tr>
-        <td style="padding:20px 24px;background:#136f47;border-radius:16px 16px 0 0;color:#ffffff;font-size:18px;font-weight:bold">
-          ${escapeHtml(tontine.name)}
-        </td>
-      </tr>
-      <tr>
-        <td style="padding:24px;font-size:16px;line-height:1.5">
-          <p style="margin:0 0 12px">${escapeHtml(greeting)}</p>
-          <p style="margin:0 0 16px;padding:12px 16px;background:#f3ead9;border-radius:10px">${escapeHtml(sentence)}</p>
+        <td style="padding:20px 24px 4px">
+          <div style="font-size:17px;font-weight:bold;color:#136f47;margin-bottom:8px">${escapeHtml(s.name)}</div>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            ${s.lines
+              .map(
+                (l) => `<tr>
+              <td valign="top" style="padding:6px 10px 6px 0;width:44px;font-size:13px;color:#5f6b64;border-bottom:1px dashed #e9dfcc">${escapeHtml(l.time)}</td>
+              <td style="padding:6px 0;font-size:15px;line-height:1.4;border-bottom:1px dashed #e9dfcc">${escapeHtml(l.sentence)}</td>
+            </tr>`,
+              )
+              .join('')}
+          </table>
+          ${s.hidden ? `<p style="margin:8px 0 0;font-size:14px;color:#5f6b64">… et ${escapeHtml(plural(s.hidden, 'autre activité', 'autres activités'))}.</p>` : ''}
           ${
             isGuest
               ? ''
-              : `<p style="margin:0 0 8px"><a href="${escapeHtml(link)}" style="display:inline-block;padding:12px 20px;background:#136f47;color:#ffffff;border-radius:999px;text-decoration:none;font-weight:bold">Voir la tontine</a></p>`
+              : `<p style="margin:12px 0 0"><a href="${escapeHtml(s.link)}" style="display:inline-block;padding:10px 18px;background:#136f47;color:#ffffff;border-radius:999px;text-decoration:none;font-weight:bold;font-size:14px">Voir la tontine</a></p>`
           }
+        </td>
+      </tr>`;
+
+  const html = `<!doctype html>
+<html lang="fr">
+  <body style="margin:0;padding:24px 12px;background:#fbf7ef;font-family:Arial,Helvetica,sans-serif;color:#1b2420">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e9dfcc;border-radius:16px">
+      <tr>
+        <td style="padding:20px 24px;background:#136f47;border-radius:16px 16px 0 0;color:#ffffff">
+          <div style="font-size:13px;opacity:.8">${escapeHtml(APP_NAME)}</div>
+          <div style="font-size:19px;font-weight:bold">Résumé du ${escapeHtml(day)}</div>
         </td>
       </tr>
       <tr>
-        <td style="padding:16px 24px;border-top:1px solid #e9dfcc;font-size:12px;color:#5f6b64">
-          ${escapeHtml(footer)}
+        <td style="padding:20px 24px 0;font-size:16px;line-height:1.5">
+          <p style="margin:0 0 4px">${escapeHtml(greeting)}</p>
+          <p style="margin:0">${escapeHtml(intro)}</p>
         </td>
+      </tr>${prepared.map(sectionHtml).join('')}
+      <tr>
+        <td style="padding:20px 24px;font-size:12px;color:#5f6b64">${escapeHtml(footer)}</td>
       </tr>
     </table>
   </body>

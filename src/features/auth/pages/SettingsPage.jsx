@@ -131,7 +131,9 @@ function EmailPreference() {
     setIsSaving(true);
     try {
       await setEmailNotifications(user.uid, event.target.checked);
-      showSuccess(event.target.checked ? 'E-mails activés.' : 'E-mails désactivés.');
+      showSuccess(
+        event.target.checked ? 'Résumé quotidien activé.' : 'Résumé quotidien désactivé.',
+      );
     } catch (error) {
       showError(getErrorMessage(error));
     } finally {
@@ -144,14 +146,14 @@ function EmailPreference() {
       <Form.Check
         type="switch"
         id="email-notifications"
-        label="Recevoir un e-mail à chaque nouvelle activité"
+        label="Recevoir le résumé quotidien par e-mail"
         checked={enabled}
         disabled={isSaving || !profile}
         onChange={onChange}
       />
       <Form.Text>
-        Paiements déclarés ou confirmés, nouveaux membres, tirage au sort, versement du pot… Envoyé
-        à {user?.email}.
+        Chaque soir vers 19 h, s’il y a du nouveau dans vos tontines : paiements, nouveaux membres,
+        tirage au sort, versement du pot… Envoyé à {user?.email}.
       </Form.Text>
     </>
   );

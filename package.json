@@ -25,7 +25,8 @@
     "deploy:hosting": "npm run build && firebase deploy --only hosting",
     "deploy:rules": "firebase deploy --only firestore:rules,firestore:indexes,storage",
     "postinstall": "npm --prefix functions install",
-    "build:functions": "rolldown -c functions/rolldown.config.js && node scripts/ensure-functions-secret.js"
+    "build:functions": "rolldown -c functions/rolldown.config.js && node scripts/ensure-functions-secret.js",
+    "digest": "npm run build:functions && node functions/lib/run-digest.js"
   },
   "dependencies": {
     "@fontsource-variable/bricolage-grotesque": "^5.3.0",
