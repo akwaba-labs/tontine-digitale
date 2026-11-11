@@ -151,3 +151,26 @@ $bottom-nav-height: 4.25rem;
   background: linear-gradient(160deg, $primary, darken($primary, 8%));
   color: #fff;
 }
+
+.letter-spacing {
+  letter-spacing: 0.2em;
+}
+
+// Mise en évidence du bénéficiaire du tour en cours
+.round-current {
+  border-left: 4px solid $warning !important;
+  background: rgba($warning, 0.08);
+}
+
+.round-mine {
+  border-left: 4px solid $primary !important;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.notification-unread {
+  background: rgba($primary, 0.06);
+  border-left: 4px solid $primary !important;
+}

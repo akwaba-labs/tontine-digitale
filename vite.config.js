@@ -20,5 +20,7 @@ export default defineConfig({
     include: ['src/**/*.test.{js,jsx}'],
     setupFiles: ['./src/test/setup.js'],
     css: false,
+    // Firebase est initialisé en mode émulateurs pendant les tests (aucune connexion réseau).
+    env: { VITE_USE_EMULATORS: 'true' },
   },
 });

@@ -2,9 +2,11 @@ import { getApp, getApps, initializeApp } from 'firebase/app';
 import { connectAuthEmulator, getAuth } from 'firebase/auth';
 import { connectFirestoreEmulator, getFirestore } from 'firebase/firestore';
 import { connectStorageEmulator, getStorage } from 'firebase/storage';
-import { EMULATOR_PORTS, readFirebaseConfig } from './firebaseConfig';
+import { readFirebaseConfig } from './firebaseConfig';
 
-const { firebaseConfig, useEmulators, emulatorHost } = readFirebaseConfig(import.meta.env);
+const { firebaseConfig, useEmulators, emulatorHost, emulatorPorts } = readFirebaseConfig(
+  import.meta.env,
+);
 
 export const firebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(firebaseApp);
@@ -18,10 +20,10 @@ auth.languageCode = 'fr';
 const EMULATOR_FLAG = '__tontineEmulatorsConnected';
 
 if (useEmulators && !globalThis[EMULATOR_FLAG]) {
-  connectAuthEmulator(auth, `http://${emulatorHost}:${EMULATOR_PORTS.auth}`, {
+  connectAuthEmulator(auth, `http://${emulatorHost}:${emulatorPorts.auth}`, {
     disableWarnings: true,
   });
-  connectFirestoreEmulator(db, emulatorHost, EMULATOR_PORTS.firestore);
-  connectStorageEmulator(storage, emulatorHost, EMULATOR_PORTS.storage);
+  connectFirestoreEmulator(db, emulatorHost, emulatorPorts.firestore);
+  connectStorageEmulator(storage, emulatorHost, emulatorPorts.storage);
   globalThis[EMULATOR_FLAG] = true;
 }

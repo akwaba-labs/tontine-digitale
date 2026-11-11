@@ -344,6 +344,35 @@ describe('members', () => {
     await assertSucceeds(batch.commit());
   });
 
+  it('un membre se retire d’une tontine en préparation, sans retirer les autres', async () => {
+    await env.withSecurityRulesDisabled((context) =>
+      updateDoc(doc(context.firestore(), `tontines/${DRAFT_ID}`), {
+        memberIds: ['owner', 'bob', 'carl'],
+      }),
+    );
+    await assertFails(
+      updateDoc(doc(dbAs('bob'), `tontines/${DRAFT_ID}`), {
+        memberIds: ['owner'],
+        updatedAt: now(),
+      }),
+    );
+    await assertSucceeds(
+      updateDoc(doc(dbAs('bob'), `tontines/${DRAFT_ID}`), {
+        memberIds: ['owner', 'carl'],
+        updatedAt: now(),
+      }),
+    );
+  });
+
+  it('un membre ne se retire pas d’une tontine en cours', async () => {
+    await assertFails(
+      updateDoc(doc(dbAs('alice'), `tontines/${ACTIVE_ID}`), {
+        memberIds: ['owner', 'co'],
+        updatedAt: now(),
+      }),
+    );
+  });
+
   it('un membre peut annuler sa demande', async () => {
     await assertSucceeds(
       updateDoc(doc(dbAs('bob'), `tontines/${DRAFT_ID}/members/bob`), {

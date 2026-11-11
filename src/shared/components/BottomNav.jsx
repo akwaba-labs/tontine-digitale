@@ -1,5 +1,7 @@
 import { NavLink } from 'react-router';
 import { APP_NAV_ITEMS } from '../../app/navigation';
+import { ROUTES } from '../../app/routePaths';
+import UnreadBadge from './UnreadBadge';
 
 /** Barre de navigation fixée en bas de l'écran, affichée uniquement sur mobile. */
 export default function BottomNav() {
@@ -13,8 +15,11 @@ export default function BottomNav() {
               end={end}
               className={`bottom-nav__link${isPrimary ? ' bottom-nav__link--primary' : ''}`}
             >
-              <span className="bottom-nav__icon">
+              <span className="bottom-nav__icon position-relative">
                 <Icon size={isPrimary ? 26 : 24} aria-hidden="true" />
+                {to === ROUTES.notifications && (
+                  <UnreadBadge className="position-absolute top-0 start-100 translate-middle small" />
+                )}
               </span>
               <span>{label}</span>
             </NavLink>

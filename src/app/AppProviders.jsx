@@ -1,6 +1,11 @@
 import ToastProvider from './providers/ToastProvider';
+import AuthProvider from './providers/AuthProvider';
 
-/** Regroupe les providers globaux. L'AuthProvider s'ajoutera ici en phase 3. */
+/** Providers globaux de l'application. */
 export default function AppProviders({ children }) {
-  return <ToastProvider>{children}</ToastProvider>;
+  return (
+    <ToastProvider>
+      <AuthProvider>{children}</AuthProvider>
+    </ToastProvider>
+  );
 }

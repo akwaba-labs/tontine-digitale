@@ -7,7 +7,7 @@ export default function PageHeader({ title, subtitle, actions }) {
       <title>{`${title} · ${APP_NAME}`}</title>
       <div>
         <h1>{title}</h1>
-        {subtitle && <p className="text-secondary mb-0">{subtitle}</p>}
+        {subtitle && <div className="text-secondary">{subtitle}</div>}
       </div>
       {actions && <div className="d-flex gap-2">{actions}</div>}
     </header>

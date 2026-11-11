@@ -1,11 +1,16 @@
 export const DEMO_PROJECT_ID = 'demo-tontine-digitale';
 export const DEFAULT_EMULATOR_HOST = '127.0.0.1';
 
-export const EMULATOR_PORTS = Object.freeze({
+export const DEFAULT_EMULATOR_PORTS = Object.freeze({
   auth: 9099,
   firestore: 8080,
   storage: 9199,
 });
+
+function readPort(env, name, fallback) {
+  const value = Number(readValue(env, name));
+  return Number.isInteger(value) && value > 0 ? value : fallback;
+}
 
 const REQUIRED_KEYS = Object.freeze({
   apiKey: 'VITE_FIREBASE_API_KEY',
@@ -50,6 +55,11 @@ export function readFirebaseConfig(env) {
     return {
       useEmulators,
       emulatorHost,
+      emulatorPorts: {
+        auth: readPort(env, 'VITE_AUTH_EMULATOR_PORT', DEFAULT_EMULATOR_PORTS.auth),
+        firestore: readPort(env, 'VITE_FIRESTORE_EMULATOR_PORT', DEFAULT_EMULATOR_PORTS.firestore),
+        storage: readPort(env, 'VITE_STORAGE_EMULATOR_PORT', DEFAULT_EMULATOR_PORTS.storage),
+      },
       firebaseConfig: {
         apiKey: 'demo-api-key',
         authDomain: `${projectId}.firebaseapp.com`,
@@ -69,5 +79,5 @@ export function readFirebaseConfig(env) {
     );
   }
 
-  return { useEmulators, emulatorHost, firebaseConfig };
+  return { useEmulators, emulatorHost, emulatorPorts: DEFAULT_EMULATOR_PORTS, firebaseConfig };
 }

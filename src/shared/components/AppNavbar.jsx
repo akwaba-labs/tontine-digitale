@@ -5,6 +5,8 @@ import { APP_NAME } from '../../config/app';
 import { ROUTES } from '../../app/routePaths';
 import { APP_NAV_ITEMS } from '../../app/navigation';
 import BrandLogo from './BrandLogo';
+import UnreadBadge from './UnreadBadge';
+import { useAuth } from '../hooks/useAuth';
 
 /**
  * Barre du haut.
@@ -13,7 +15,8 @@ import BrandLogo from './BrandLogo';
  * - variant « public » : liens Connexion / Inscription.
  */
 export default function AppNavbar({ variant = 'app' }) {
-  const brandTarget = variant === 'app' ? ROUTES.dashboard : ROUTES.home;
+  const { user } = useAuth();
+  const brandTarget = user ? ROUTES.dashboard : ROUTES.home;
 
   return (
     <Navbar bg="white" className="border-bottom shadow-sm" sticky="top">
@@ -35,11 +38,21 @@ export default function AppNavbar({ variant = 'app' }) {
             {APP_NAV_ITEMS.map((item) => (
               <Nav.Link key={item.to} as={NavLink} to={item.to} end={item.end}>
                 {item.desktopLabel}
+                {item.to === ROUTES.notifications && <UnreadBadge className="ms-1" />}
               </Nav.Link>
             ))}
             <Nav.Link as={NavLink} to={ROUTES.settings} aria-label="Paramètres" title="Paramètres">
               <Settings size={20} aria-hidden="true" />
             </Nav.Link>
+          </Nav>
+        ) : user ? (
+          <Nav className="ms-auto">
+            <Link
+              to={ROUTES.dashboard}
+              className="btn btn-primary btn-sm d-inline-flex align-items-center"
+            >
+              Mon tableau de bord
+            </Link>
           </Nav>
         ) : (
           <Nav className="ms-auto flex-row align-items-center gap-2">

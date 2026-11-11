@@ -18,7 +18,7 @@
     "test:watch": "vitest",
     "emulators": "firebase emulators:start --project demo-tontine-digitale --import=./emulator-data --export-on-exit=./emulator-data",
     "start": "firebase emulators:exec --ui \"vite --mode emulators\"",
-    "test:rules": "firebase emulators:exec --config firebase.rules-test.json --only firestore,storage --project demo-tontine-rules \"vitest run --config vitest.rules.config.js\""
+    "test:rules": "firebase emulators:exec --config firebase.rules-test.json --only auth,firestore,storage --project demo-tontine-rules \"vitest run --config vitest.rules.config.js\""
   },
   "dependencies": {
     "@hookform/resolvers": "^7.0.5",

@@ -121,7 +121,7 @@ service cloud.firestore {
     // invites/{code} permet de trouver une tontine par son code sans pouvoir la lire.
 
     function validInvite(d) {
-      return d.keys().hasOnly(['tontineId', 'tontineName', 'ownerName', 'amount', 'frequency', 'totalShares', 'createdAt'])
+      return d.keys().hasOnly(['tontineId', 'tontineName', 'ownerId', 'ownerName', 'amount', 'frequency', 'totalShares', 'createdAt'])
         && d.tontineId is string
         && isText(d.tontineName, 2, 80)
         && isText(d.ownerName, 1, 130)
@@ -227,13 +227,24 @@ service cloud.firestore {
     match /tontines/{tontineId} {
       allow read: if isMemberOf(existing());
       allow create: if signedIn() && validNewTontine(incoming());
-      allow update: if isOwnerOf(existing()) && validTontineUpdate(existing(), incoming());
+      allow update: if (isOwnerOf(existing()) && validTontineUpdate(existing(), incoming()))
+        || memberLeavesTontine(existing(), incoming());
       allow delete: if false;
+
+      // Un membre (hors organisateur) se retire lui-même tant que la tontine est en préparation.
+      function memberLeavesTontine(r, d) {
+        return signedIn() && uid() in r.memberIds && uid() != r.ownerId
+          && r.status == 'DRAFT' && !isDrawn(r)
+          && onlyChanged(['memberIds', 'coOrganizerIds', 'updatedAt'])
+          && d.memberIds == r.memberIds.removeAll([uid()])
+          && d.coOrganizerIds == r.coOrganizerIds.removeAll([uid()])
+          && isNow(d.updatedAt);
+      }
 
       // ------------------------------------------------------------- Membres
 
       function validMember(d) {
-        return d.keys().hasOnly(['userId', 'displayName', 'phone', 'role', 'shares', 'status', 'joinedAt', 'updatedAt'])
+        return d.keys().hasOnly(['userId', 'displayName', 'phone', 'tontineName', 'role', 'shares', 'status', 'joinedAt', 'updatedAt'])
           && d.keys().hasAll(['userId', 'displayName', 'phone', 'role', 'shares', 'status', 'joinedAt', 'updatedAt'])
           && isText(d.displayName, 1, 130)
           && isText(d.phone, 0, 20)
@@ -291,7 +302,7 @@ service cloud.firestore {
           let t = tontineOf(tontineId);
           return signedIn() && memberId == uid() && uid() != t.ownerId
             && membershipOpen(t)
-            && onlyChanged(['status', 'shares', 'displayName', 'phone', 'updatedAt'])
+            && onlyChanged(['status', 'shares', 'displayName', 'phone', 'role', 'updatedAt'])
             && incoming().role == 'MEMBER'
             && (
               // Quitter ou annuler sa demande

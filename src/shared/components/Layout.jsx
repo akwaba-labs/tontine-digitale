@@ -1,5 +1,7 @@
 import { Badge, Container } from 'react-bootstrap';
+import { Suspense } from 'react';
 import { Outlet } from 'react-router';
+import Loader from './Loader';
 import { APP_NAME } from '../../config/app';
 import AppNavbar from './AppNavbar';
 import BottomNav from './BottomNav';
@@ -35,7 +37,9 @@ export function AppLayout() {
       <AppNavbar variant="app" />
       <main id="main-content" className="app-main app-main--with-bottom-nav">
         <Container>
-          <Outlet />
+          <Suspense fallback={<Loader />}>
+            <Outlet />
+          </Suspense>
         </Container>
       </main>
       <BottomNav />
@@ -51,7 +55,9 @@ export function PublicLayout() {
       <SkipLink />
       <AppNavbar variant="public" />
       <main id="main-content" className="flex-grow-1">
-        <Outlet />
+        <Suspense fallback={<Loader />}>
+          <Outlet />
+        </Suspense>
       </main>
       <footer className="py-4 text-center text-secondary small border-top bg-white">
         © {new Date().getFullYear()} {APP_NAME} · L'application ne déplace pas d'argent : elle trace

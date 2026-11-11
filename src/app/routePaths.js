@@ -10,6 +10,7 @@ export const ROUTES = Object.freeze({
   tontines: '/tontines',
   createTontine: '/tontines/nouvelle',
   tontineDetail: '/tontines/:tontineId',
+  editTontine: '/tontines/:tontineId/modifier',
   declarePayment: '/tontines/:tontineId/declarer',
   notifications: '/notifications',
   profile: '/profil',
@@ -20,6 +21,25 @@ export function tontineDetailPath(tontineId) {
   return `/tontines/${encodeURIComponent(tontineId)}`;
 }
 
-export function declarePaymentPath(tontineId) {
-  return `${tontineDetailPath(tontineId)}/declarer`;
+export function declarePaymentPath(tontineId, roundIndex) {
+  const base = `${tontineDetailPath(tontineId)}/declarer`;
+  return roundIndex ? `${base}?tour=${roundIndex}` : base;
+}
+
+export function editTontinePath(tontineId) {
+  return `${tontineDetailPath(tontineId)}/modifier`;
+}
+
+export function tontineTabPath(tontineId, tab) {
+  return `${tontineDetailPath(tontineId)}?onglet=${tab}`;
+}
+
+export function joinPath(inviteCode) {
+  return `/rejoindre/${encodeURIComponent(inviteCode)}`;
+}
+
+/** N'accepte que des chemins internes (évite les redirections vers un autre site). */
+export function safeRedirect(path) {
+  if (typeof path === 'string' && path.startsWith('/') && !path.startsWith('//')) return path;
+  return ROUTES.dashboard;
 }

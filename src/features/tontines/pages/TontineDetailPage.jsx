@@ -1,74 +1,104 @@
-import { Tab, Tabs } from 'react-bootstrap';
-import { Link, useParams } from 'react-router';
-import { CalendarDays, History, LayoutGrid, Receipt, Users } from 'lucide-react';
-import { declarePaymentPath } from '../../../app/routePaths';
+import { Nav, Tab } from 'react-bootstrap';
+import { Link, useParams, useSearchParams } from 'react-router';
+import { Pencil, Wallet } from 'lucide-react';
 import PageHeader from '../../../shared/components/PageHeader';
-import EmptyState from '../../../shared/components/EmptyState';
+import StatusBadge from '../../../shared/components/StatusBadge';
+import Loader from '../../../shared/components/Loader';
+import { TONTINE_STATUS } from '../../../shared/constants/domain';
+import { declarePaymentPath, editTontinePath } from '../../../app/routePaths';
+import { useTontineDetail } from '../hooks/useTontineDetail';
+import TontineLoadError from '../components/TontineLoadError';
+import OverviewTab from '../components/OverviewTab';
+import HistoryTab from '../components/HistoryTab';
+import RoundsTab from '../../rounds/components/RoundsTab';
+import ContributionsTab from '../../contributions/components/ContributionsTab';
+import MembersTab from '../../members/components/MembersTab';
 
 const TABS = [
-  {
-    key: 'overview',
-    title: 'Aperçu',
-    icon: LayoutGrid,
-    emptyTitle: 'Aperçu de la tontine',
-    message: 'Montant, fréquence, tour en cours et progression s’afficheront ici.',
-  },
-  {
-    key: 'rounds',
-    title: 'Tours',
-    icon: CalendarDays,
-    emptyTitle: 'Calendrier des tours',
-    message: 'Chaque tour, sa date, son bénéficiaire et le montant du pot s’afficheront ici.',
-  },
-  {
-    key: 'contributions',
-    title: 'Cotisations',
-    icon: Receipt,
-    emptyTitle: 'Aucune cotisation',
-    message: 'Vous verrez ici qui a payé, qui a déclaré son paiement et qui est en retard.',
-  },
-  {
-    key: 'members',
-    title: 'Membres',
-    icon: Users,
-    emptyTitle: 'Aucun membre',
-    message: 'La liste des membres et leur nombre de parts s’afficheront ici.',
-  },
-  {
-    key: 'history',
-    title: 'Historique',
-    icon: History,
-    emptyTitle: 'Historique vide',
-    message:
-      'Toutes les opérations de la tontine seront inscrites ici, sans possibilité de modification.',
-  },
+  { key: 'apercu', title: 'Aperçu', Component: OverviewTab },
+  { key: 'tours', title: 'Tours', Component: RoundsTab },
+  { key: 'cotisations', title: 'Cotisations', Component: ContributionsTab },
+  { key: 'membres', title: 'Membres', Component: MembersTab },
+  { key: 'historique', title: 'Historique', Component: HistoryTab },
 ];
 
 export default function TontineDetailPage() {
   const { tontineId } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const detail = useTontineDetail(tontineId);
+  const activeTab = TABS.some((tab) => tab.key === searchParams.get('onglet'))
+    ? searchParams.get('onglet')
+    : 'apercu';
+
+  if (detail.isLoading) return <Loader />;
+  if (detail.error || detail.notFound) return <TontineLoadError error={detail.error} />;
+
+  const { tontine, isOwner, me } = detail;
+  const canEdit = isOwner && [TONTINE_STATUS.DRAFT, TONTINE_STATUS.ACTIVE].includes(tontine.status);
+  const canDeclare = tontine.status === TONTINE_STATUS.ACTIVE && me;
+  const pendingCount = detail.members.filter((m) => m.status === 'PENDING').length;
+  const toConfirmCount = detail.isManager
+    ? detail.contributions.filter((c) => c.status === 'DECLARED').length
+    : 0;
 
   return (
     <>
       <PageHeader
-        title="Détail de la tontine"
+        title={tontine.name}
+        subtitle={<StatusBadge kind="tontine" status={tontine.status} />}
         actions={
-          <Link to={declarePaymentPath(tontineId)} className="btn btn-primary">
-            Déclarer un paiement
-          </Link>
+          <>
+            {canEdit && (
+              <Link
+                to={editTontinePath(tontine.id)}
+                className="btn btn-outline-secondary"
+                aria-label="Modifier la tontine"
+              >
+                <Pencil size={18} aria-hidden="true" />
+                <span className="d-none d-sm-inline ms-1">Modifier</span>
+              </Link>
+            )}
+            {canDeclare && (
+              <Link to={declarePaymentPath(tontine.id)} className="btn btn-primary">
+                <Wallet size={18} className="me-1" aria-hidden="true" />
+                Déclarer un paiement
+              </Link>
+            )}
+          </>
         }
       />
-      <Tabs
-        defaultActiveKey="overview"
-        id="tontine-tabs"
-        className="nav-tabs-scroll mb-3"
+      <Tab.Container
+        activeKey={activeTab}
+        onSelect={(key) => setSearchParams({ onglet: key }, { replace: true })}
         mountOnEnter
       >
-        {TABS.map(({ key, title, icon, emptyTitle, message }) => (
-          <Tab key={key} eventKey={key} title={title}>
-            <EmptyState icon={icon} title={emptyTitle} message={message} />
-          </Tab>
-        ))}
-      </Tabs>
+        <Nav variant="tabs" className="nav-tabs-scroll mb-3" role="tablist">
+          {TABS.map(({ key, title }) => {
+            const badge =
+              key === 'membres' ? pendingCount : key === 'cotisations' ? toConfirmCount : 0;
+            return (
+              <Nav.Item key={key}>
+                <Nav.Link eventKey={key} role="tab">
+                  {title}
+                  {badge > 0 && (
+                    <span className="badge rounded-pill text-bg-warning ms-1">
+                      {badge}
+                      <span className="visually-hidden"> à traiter</span>
+                    </span>
+                  )}
+                </Nav.Link>
+              </Nav.Item>
+            );
+          })}
+        </Nav>
+        <Tab.Content>
+          {TABS.map(({ key, Component }) => (
+            <Tab.Pane key={key} eventKey={key}>
+              <Component detail={detail} />
+            </Tab.Pane>
+          ))}
+        </Tab.Content>
+      </Tab.Container>
     </>
   );
 }
