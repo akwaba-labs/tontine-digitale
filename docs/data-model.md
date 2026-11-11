@@ -6,13 +6,14 @@ d'heure, pas d'ambiguïté. Les montants sont des **entiers** en FCFA.
 
 ## `users/{uid}` — profil privé
 
-| Champ                    | Type           | Note                           |
-| ------------------------ | -------------- | ------------------------------ |
-| `firstName`, `lastName`  | string         |                                |
-| `email`                  | string         |                                |
-| `phone`                  | string         | `+225XXXXXXXXXX` (10 chiffres) |
-| `photoURL`               | string \| null | Storage `avatars/{uid}/…`      |
-| `createdAt`, `updatedAt` | timestamp      |                                |
+| Champ                    | Type                | Note                           |
+| ------------------------ | ------------------- | ------------------------------ |
+| `firstName`, `lastName`  | string              |                                |
+| `email`                  | string              |                                |
+| `phone`                  | string              | `+225XXXXXXXXXX` (10 chiffres) |
+| `photoURL`               | string \| null      | Storage `avatars/{uid}/…`      |
+| `emailNotifications`     | bool (absent = oui) | e-mail à chaque activité       |
+| `createdAt`, `updatedAt` | timestamp           |                                |
 
 Lisible uniquement par son propriétaire. Le nom et le téléphone utiles aux autres membres sont
 recopiés dans `members/{uid}` au moment de la demande d'adhésion.
@@ -52,6 +53,19 @@ sont figés par les règles de sécurité.
 `userId, displayName, phone, role (ORGANIZER | CO_ORGANIZER | MEMBER), shares (1–10),
 status (PENDING | ACTIVE | REFUSED | LEFT), joinedAt, updatedAt`.
 
+**Membres sans compte** : l'organisateur peut ajouter une personne qui n'utilisera pas
+l'application (tant que la tontine est en préparation et non tirée au sort). Son identifiant est
+`guest_` + 20 caractères (aucun uid Firebase ne contient « _ »), `userId` vaut ce même identifiant
+et `isGuest: true`. Il figure dans `memberIds` comme les autres (ordre, tours, cotisations), mais ne
+peut jamais se connecter : l'organisateur enregistre ses paiements (« Paiement reçu ») et confirme
+pour lui la remise du pot. Il ne peut pas être co-organisateur et ne reçoit pas de notifications
+dans l'application.
+
+### `tontines/{id}/guestContacts/{guestId}`
+
+`email, updatedAt` : e-mail facultatif d'un membre sans compte, lisible par l'organisateur seul,
+utilisé uniquement pour lui envoyer les e-mails. Effacé quand le membre est retiré.
+
 Une personne peut avoir plusieurs « mains » (`shares`) : elle cotise `amount × shares` à chaque tour
 et reçoit autant de tours.
 
@@ -86,6 +100,13 @@ l'action qu'il décrit. Les règles interdisent toute modification ou suppressio
 Créées par l'application dans le même lot que l'action. Les rappels « c'est ton tour » et
 « échéance proche » sont calculés à l'affichage (les rappels automatiques par Cloud Functions sont
 prévus pour une version ultérieure).
+
+## `mailLog/{eventId}_{memberId}` — e-mails envoyés
+
+Écrit uniquement par la Cloud Function `emailMembersOnEvent` (aucun accès depuis l'application) :
+`tontineId, eventId, eventType, to, subject, status (PENDING | SENT | SIMULATED | FAILED), error,
+createdAt, sentAt`. L'identifiant garantit un seul e-mail par événement et par destinataire, même
+si le déclencheur est rejoué. En mode simulé (émulateurs), le texte de l'e-mail est aussi stocké.
 
 ## Storage
 

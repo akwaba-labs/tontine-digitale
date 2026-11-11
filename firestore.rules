@@ -92,11 +92,18 @@ service cloud.firestore {
       return 'drawAt' in t;
     }
 
+    // Membre sans compte (ajouté par l'organisateur) : identifiant « guest_ » + 20 caractères.
+    // Aucun identifiant Firebase Auth ne contient « _ » : pas de confusion possible.
+    function isGuestId(id) {
+      return id is string && id.matches('^guest_[A-Za-z0-9]{20}$');
+    }
+
     // ------------------------------------------------------------ Utilisateurs
 
     function validUser(d) {
       return d.keys().hasAll(['firstName', 'lastName', 'email', 'phone', 'createdAt', 'updatedAt'])
-        && d.keys().hasOnly(['firstName', 'lastName', 'email', 'phone', 'photoURL', 'createdAt', 'updatedAt'])
+        && d.keys().hasOnly(['firstName', 'lastName', 'email', 'phone', 'photoURL', 'emailNotifications', 'createdAt', 'updatedAt'])
+        && (!('emailNotifications' in d) || d.emailNotifications is bool)
         && isText(d.firstName, 1, 60)
         && isText(d.lastName, 1, 60)
         && isText(d.email, 3, 200)
@@ -244,13 +251,14 @@ service cloud.firestore {
       // ------------------------------------------------------------- Membres
 
       function validMember(d) {
-        return d.keys().hasOnly(['userId', 'displayName', 'phone', 'tontineName', 'role', 'shares', 'status', 'joinedAt', 'updatedAt'])
+        return d.keys().hasOnly(['userId', 'displayName', 'phone', 'tontineName', 'role', 'shares', 'status', 'isGuest', 'joinedAt', 'updatedAt'])
           && d.keys().hasAll(['userId', 'displayName', 'phone', 'role', 'shares', 'status', 'joinedAt', 'updatedAt'])
           && isText(d.displayName, 1, 130)
           && isText(d.phone, 0, 20)
           && d.role in ['ORGANIZER', 'CO_ORGANIZER', 'MEMBER']
           && isIntBetween(d.shares, 1, 10)
           && d.status in ['PENDING', 'ACTIVE', 'REFUSED', 'LEFT']
+          && (!('isGuest' in d) || d.isGuest == true)
           && isNow(d.updatedAt);
       }
 
@@ -263,9 +271,13 @@ service cloud.firestore {
         allow read: if isMemberOf(tontineOf(tontineId))
           || (signedIn() && memberId == uid());
 
-        allow create: if signedIn() && memberId == uid()
+        allow create: if (selfCreatesMember() || ownerAddsGuest());
+
+        function selfCreatesMember() {
+          return signedIn() && memberId == uid()
           && validMember(incoming())
           && incoming().userId == uid()
+          && !('isGuest' in incoming())
           && isNow(incoming().joinedAt)
           && (
             // Demande pour rejoindre (via le code d'invitation)
@@ -276,6 +288,22 @@ service cloud.firestore {
               && !exists(tontinePath(tontineId))
               && tontineAfter(tontineId).ownerId == uid())
           );
+        }
+
+        // L'organisateur ajoute lui-même une personne qui n'a pas de compte.
+        // Dans le même lot, son identifiant est ajouté à memberIds.
+        function ownerAddsGuest() {
+          let t = tontineOf(tontineId);
+          return isOwnerOf(t) && membershipOpen(t)
+            && isGuestId(memberId)
+            && validMember(incoming())
+            && incoming().userId == memberId
+            && incoming().isGuest == true
+            && incoming().status == 'ACTIVE'
+            && incoming().role == 'MEMBER'
+            && isNow(incoming().joinedAt)
+            && memberId in tontineAfter(tontineId).memberIds;
+        }
 
         allow update: if validMember(incoming())
           && incoming().userId == existing().userId
@@ -290,6 +318,8 @@ service cloud.firestore {
           return isOwnerOf(t)
             && (!isSelf || (incoming().role == 'ORGANIZER' && incoming().status == 'ACTIVE'))
             && (isSelf || incoming().role != 'ORGANIZER')
+            // Un membre sans compte ne peut pas être co-organisateur (il ne se connecte jamais).
+            && (!isGuestId(memberId) || incoming().role == 'MEMBER')
             && (
               // En préparation : accepter, refuser, retirer, changer les parts ou le rôle
               (membershipOpen(t) && onlyChanged(['role', 'shares', 'status', 'updatedAt']))
@@ -315,6 +345,20 @@ service cloud.firestore {
         }
       }
 
+      // ------------------------------------- Coordonnées privées des membres sans compte
+      // E-mail facultatif, utilisé uniquement pour les e-mails : lisible par l'organisateur seul.
+
+      match /guestContacts/{guestId} {
+        allow read, delete: if isOwnerOf(tontineOf(tontineId));
+        allow create, update: if isOwnerOf(tontineOf(tontineId))
+          && isGuestId(guestId)
+          && existsAfter(memberPath(tontineId, guestId))
+          && incoming().keys().hasOnly(['email', 'updatedAt'])
+          && isText(incoming().email, 3, 200)
+          && incoming().email.matches('^[^@ ]+@[^@ ]+[.][^@ ]+$')
+          && isNow(incoming().updatedAt);
+      }
+
       // ---------------------------------------------------------------- Tours
 
       match /rounds/{roundId} {
@@ -326,7 +370,7 @@ service cloud.firestore {
           && tontineAfter(tontineId).status == 'ACTIVE'
           && validNewRound(tontineAfter(tontineId), incoming());
 
-        allow update: if ownerSendsPayout() || beneficiaryConfirmsPayout();
+        allow update: if ownerSendsPayout() || beneficiaryConfirmsPayout() || ownerConfirmsGuestPayout();
         allow delete: if false;
 
         function validNewRound(t, d) {
@@ -353,6 +397,17 @@ service cloud.firestore {
             && isText(incoming().payoutReference, 0, 100)
             && isNow(incoming().payoutSentAt)
             && incoming().payoutSentBy == uid()
+            && isNow(incoming().updatedAt);
+        }
+
+        // Bénéficiaire sans compte : l'organisateur confirme la remise à sa place.
+        function ownerConfirmsGuestPayout() {
+          return isOwnerOf(tontineOf(tontineId))
+            && isGuestId(existing().beneficiaryId)
+            && existing().payoutStatus == 'SENT'
+            && incoming().payoutStatus == 'RECEIVED'
+            && onlyChanged(['payoutStatus', 'payoutConfirmedAt', 'updatedAt'])
+            && isNow(incoming().payoutConfirmedAt)
             && isNow(incoming().updatedAt);
         }
 

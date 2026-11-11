@@ -36,6 +36,13 @@ export const MEMBER_ROLE_LABELS = Object.freeze({
   MEMBER: 'Membre',
 });
 
+// Membre sans compte, ajouté par l'organisateur : identifiant « guest_ » + 20 caractères.
+export const GUEST_ID_PREFIX = 'guest_';
+
+export function isGuestId(id) {
+  return typeof id === 'string' && id.startsWith(GUEST_ID_PREFIX);
+}
+
 export const MEMBER_STATUS = Object.freeze({
   PENDING: 'PENDING',
   ACTIVE: 'ACTIVE',
@@ -80,6 +87,7 @@ export const EVENT_TYPES = Object.freeze({
   TONTINE_COMPLETED: 'TONTINE_COMPLETED',
   TONTINE_CANCELLED: 'TONTINE_CANCELLED',
   MEMBER_ACCEPTED: 'MEMBER_ACCEPTED',
+  MEMBER_ADDED: 'MEMBER_ADDED',
   MEMBER_REFUSED: 'MEMBER_REFUSED',
   MEMBER_REMOVED: 'MEMBER_REMOVED',
   MEMBER_LEFT: 'MEMBER_LEFT',

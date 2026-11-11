@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Badge, Button, Dropdown, Form, ListGroup } from 'react-bootstrap';
 import { MoreVertical, Phone, Users } from 'lucide-react';
 import EmptyState from '../../../shared/components/EmptyState';
+import AddMembersBar from './AddMembersBar';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
 import StatusBadge from '../../../shared/components/StatusBadge';
 import { useAsyncAction } from '../../../shared/hooks/useAsyncAction';
@@ -11,6 +12,7 @@ import {
   MEMBER_ROLE_LABELS,
   MEMBER_STATUS,
   TONTINE_STATUS,
+  isGuestId,
 } from '../../../shared/constants/domain';
 import { formatPhone } from '../../../shared/utils/formatPhone';
 import { activeMembers } from '../../contributions/logic/contributions';
@@ -29,6 +31,11 @@ function MemberInfo({ member, uid }) {
       <div className="fw-semibold">
         {member.displayName}
         {member.userId === uid && <span className="text-primary"> (vous)</span>}
+        {isGuestId(member.userId) && (
+          <Badge bg="light" text="dark" className="ms-2 border" title="Ajouté par l’organisateur">
+            Sans compte
+          </Badge>
+        )}
         {member.role !== MEMBER_ROLE.MEMBER && (
           <Badge bg="light" text="dark" className="ms-2 border">
             {MEMBER_ROLE_LABELS[member.role]}
@@ -67,6 +74,8 @@ export default function MembersTab({ detail }) {
 
   return (
     <>
+      {isOwner && membershipOpen && <AddMembersBar detail={detail} />}
+
       {pending.length > 0 && (
         <section className="mb-4">
           <h2 className="h6 text-uppercase text-secondary">
@@ -168,50 +177,54 @@ export default function MembersTab({ detail }) {
                         )}
                       </Form.Select>
                     )}
-                    {canManageRoles && !isTontineOwner && (
-                      <Dropdown align="end">
-                        <Dropdown.Toggle
-                          variant="light"
-                          size="sm"
-                          className="border"
-                          aria-label={`Actions pour ${member.displayName}`}
-                        >
-                          <MoreVertical size={16} aria-hidden="true" />
-                        </Dropdown.Toggle>
-                        <Dropdown.Menu>
-                          <Dropdown.Item
-                            as="button"
-                            onClick={() =>
-                              run(
-                                () =>
-                                  setCoOrganizer(
-                                    actor,
-                                    tontine,
-                                    member,
-                                    member.role !== MEMBER_ROLE.CO_ORGANIZER,
-                                  ),
-                                {
-                                  success: 'Rôle mis à jour.',
-                                },
-                              )
-                            }
+                    {canManageRoles &&
+                      !isTontineOwner &&
+                      (membershipOpen || !isGuestId(member.userId)) && (
+                        <Dropdown align="end">
+                          <Dropdown.Toggle
+                            variant="light"
+                            size="sm"
+                            className="border"
+                            aria-label={`Actions pour ${member.displayName}`}
                           >
-                            {member.role === MEMBER_ROLE.CO_ORGANIZER
-                              ? 'Retirer le rôle de co-organisateur'
-                              : 'Nommer co-organisateur (confirme les paiements)'}
-                          </Dropdown.Item>
-                          {membershipOpen && (
-                            <Dropdown.Item
-                              as="button"
-                              className="text-danger"
-                              onClick={() => setToRemove(member)}
-                            >
-                              Retirer de la tontine
-                            </Dropdown.Item>
-                          )}
-                        </Dropdown.Menu>
-                      </Dropdown>
-                    )}
+                            <MoreVertical size={16} aria-hidden="true" />
+                          </Dropdown.Toggle>
+                          <Dropdown.Menu>
+                            {!isGuestId(member.userId) && (
+                              <Dropdown.Item
+                                as="button"
+                                onClick={() =>
+                                  run(
+                                    () =>
+                                      setCoOrganizer(
+                                        actor,
+                                        tontine,
+                                        member,
+                                        member.role !== MEMBER_ROLE.CO_ORGANIZER,
+                                      ),
+                                    {
+                                      success: 'Rôle mis à jour.',
+                                    },
+                                  )
+                                }
+                              >
+                                {member.role === MEMBER_ROLE.CO_ORGANIZER
+                                  ? 'Retirer le rôle de co-organisateur'
+                                  : 'Nommer co-organisateur (confirme les paiements)'}
+                              </Dropdown.Item>
+                            )}
+                            {membershipOpen && (
+                              <Dropdown.Item
+                                as="button"
+                                className="text-danger"
+                                onClick={() => setToRemove(member)}
+                              >
+                                Retirer de la tontine
+                              </Dropdown.Item>
+                            )}
+                          </Dropdown.Menu>
+                        </Dropdown>
+                      )}
                   </div>
                 </ListGroup.Item>
               );

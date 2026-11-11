@@ -56,7 +56,7 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
-    include: ['src/**/*.test.{js,jsx}'],
+    include: ['src/**/*.test.{js,jsx}', 'functions/src/**/*.test.js'],
     setupFiles: ['./src/test/setup.js'],
     css: false,
     // Firebase est initialisé en mode émulateurs pendant les tests (aucune connexion réseau).

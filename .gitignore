@@ -28,3 +28,8 @@ npm-debug.log*
 .vscode/*
 !.vscode/extensions.json
 .DS_Store
+
+# Cloud Functions
+functions/lib/
+functions/.secret.local
+functions/.env.local

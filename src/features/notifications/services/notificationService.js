@@ -13,15 +13,16 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../../config/firebase';
 import { fromSnapshot } from '../../../shared/services/firestoreUtils';
+import { isGuestId } from '../../../shared/constants/domain';
 
 const notificationsCollection = collection(db, 'notifications');
 
 /**
  * Ajoute une notification dans un lot d'écritures existant.
- * L'auteur ne se notifie jamais lui-même.
+ * L'auteur ne se notifie jamais lui-même ; un membre sans compte ne peut pas les lire.
  */
 export function addNotification(writer, actor, { userId, tontineId, type, message, link = '' }) {
-  if (!userId || userId === actor.uid) return;
+  if (!userId || userId === actor.uid || isGuestId(userId)) return;
   writer.set(doc(notificationsCollection), {
     userId,
     tontineId,

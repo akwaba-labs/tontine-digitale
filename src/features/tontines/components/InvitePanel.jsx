@@ -1,22 +1,9 @@
 import { Button, Card } from 'react-bootstrap';
 import { Copy, Share2 } from 'lucide-react';
-import { useToast } from '../../../shared/hooks/useToast';
-import { buildInviteMessage, whatsappShareLink } from '../../../shared/utils/whatsapp';
-import { joinPath } from '../../../app/routePaths';
+import { useInviteLink } from '../hooks/useInviteLink';
 
 export default function InvitePanel({ tontine }) {
-  const { showSuccess, showError } = useToast();
-  const inviteUrl = `${window.location.origin}${joinPath(tontine.inviteCode)}`;
-  const message = buildInviteMessage({ tontine, inviteUrl });
-
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(inviteUrl);
-      showSuccess('Lien copié.');
-    } catch {
-      showError('Copie impossible : sélectionnez le lien à la main.');
-    }
-  };
+  const { inviteUrl, whatsappHref, copy } = useInviteLink(tontine);
 
   return (
     <Card className="shadow-sm mb-3 border-primary">
@@ -35,7 +22,7 @@ export default function InvitePanel({ tontine }) {
         <div className="d-grid d-sm-flex gap-2">
           <a
             className="btn btn-success flex-grow-1"
-            href={whatsappShareLink(message)}
+            href={whatsappHref}
             target="_blank"
             rel="noopener noreferrer"
           >

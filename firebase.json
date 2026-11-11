@@ -6,6 +6,21 @@
   "storage": {
     "rules": "storage.rules"
   },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        "src",
+        "rolldown.config.js",
+        "*.local",
+        "*.example",
+        "**/*.test.js"
+      ],
+      "predeploy": ["npm --prefix \"$RESOURCE_DIR\" run build"]
+    }
+  ],
   "hosting": {
     "public": "dist",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
@@ -37,6 +52,7 @@
     "singleProjectMode": true,
     "auth": { "port": 9099 },
     "firestore": { "port": 8080 },
+    "functions": { "port": 5001 },
     "storage": { "port": 9199 },
     "hosting": { "port": 5050 },
     "ui": { "enabled": true, "port": 4000 }

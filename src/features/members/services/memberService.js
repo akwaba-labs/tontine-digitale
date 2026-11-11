@@ -16,6 +16,7 @@ import { fromSnapshot } from '../../../shared/services/firestoreUtils';
 import { AppError } from '../../../shared/utils/errorMessages';
 import {
   EVENT_TYPES,
+  GUEST_ID_PREFIX,
   MEMBER_ROLE,
   MEMBER_STATUS,
   NOTIFICATION_TYPES,
@@ -138,6 +139,64 @@ export async function acceptMember(actor, tontine, members, member) {
   await batch.commit();
 }
 
+const ID_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+
+export function generateGuestId(
+  randomValues = (n) => globalThis.crypto.getRandomValues(new Uint32Array(n)),
+) {
+  const chars = Array.from(randomValues(20), (v) => ID_ALPHABET[v % ID_ALPHABET.length]);
+  return `${GUEST_ID_PREFIX}${chars.join('')}`;
+}
+
+/**
+ * L'organisateur ajoute une personne sans compte (pas de smartphone, pas d'e-mail…).
+ * Il enregistre ensuite lui-même ses paiements. L'e-mail, facultatif, reste privé.
+ */
+export async function addGuestMember(
+  actor,
+  tontine,
+  members,
+  { displayName, phone, email, shares },
+) {
+  const used = sumShares(activeMembers(members));
+  if (used + shares > tontine.totalShares) {
+    throw new AppError(
+      `Plus assez de parts libres : ${tontine.totalShares - used} restante(s), ${shares} demandée(s).`,
+    );
+  }
+  const guestId = generateGuestId();
+  const batch = writeBatch(db);
+  batch.set(memberRef(tontine.id, guestId), {
+    userId: guestId,
+    displayName,
+    phone: phone ?? '',
+    tontineName: tontine.name,
+    role: MEMBER_ROLE.MEMBER,
+    shares,
+    status: MEMBER_STATUS.ACTIVE,
+    isGuest: true,
+    joinedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+  batch.update(tontineRef(tontine.id), {
+    memberIds: arrayUnion(guestId),
+    updatedAt: serverTimestamp(),
+  });
+  if (email) {
+    batch.set(doc(db, 'tontines', tontine.id, 'guestContacts', guestId), {
+      email,
+      updatedAt: serverTimestamp(),
+    });
+  }
+  addEvent(batch, tontine.id, actor, EVENT_TYPES.MEMBER_ADDED, {
+    memberId: guestId,
+    memberName: displayName,
+    shares,
+  });
+  await batch.commit();
+  return guestId;
+}
+
 export async function refuseMember(actor, tontine, member) {
   const batch = writeBatch(db);
   batch.update(memberRef(tontine.id, member.userId), {
@@ -173,6 +232,10 @@ export async function removeMember(actor, tontine, member) {
     ...(orderContainsMember ? { payoutOrder: [] } : {}),
     updatedAt: serverTimestamp(),
   });
+  if (member.isGuest) {
+    // Ses coordonnées privées ne servent plus à rien : on les efface.
+    batch.delete(doc(db, 'tontines', tontine.id, 'guestContacts', member.userId));
+  }
   addEvent(batch, tontine.id, actor, EVENT_TYPES.MEMBER_REMOVED, {
     memberId: member.userId,
     memberName: member.displayName,

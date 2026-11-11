@@ -11,6 +11,7 @@ import {
   PAYOUT_STATUS,
   ROUND_STATE,
   TONTINE_STATUS,
+  isGuestId,
 } from '../../../shared/constants/domain';
 import { formatDate } from '../../../shared/utils/formatDate';
 import { confirmPayoutReceived, markPayoutSent } from '../services/roundService';
@@ -59,6 +60,7 @@ export default function RoundsTab({ detail }) {
         {rounds.map((round) => {
           const state = getRoundState(round, isActive ? currentRoundIndex : null);
           const isMine = round.beneficiaryId === uid;
+          const isGuestBeneficiary = isGuestId(round.beneficiaryId);
           const isCurrent = state === ROUND_STATE.CURRENT;
           return (
             <ListGroup.Item
@@ -96,6 +98,18 @@ export default function RoundsTab({ detail }) {
                         Verser le pot
                       </Button>
                     )}
+                  {isActive &&
+                    isOwner &&
+                    isGuestBeneficiary &&
+                    round.payoutStatus === PAYOUT_STATUS.SENT && (
+                      <Button
+                        size="sm"
+                        variant="success"
+                        onClick={() => setModal({ type: 'received', round })}
+                      >
+                        Pot remis en main propre
+                      </Button>
+                    )}
                   {isActive && isMine && round.payoutStatus === PAYOUT_STATUS.SENT && (
                     <Button
                       size="sm"
@@ -118,7 +132,9 @@ export default function RoundsTab({ detail }) {
         title={`Verser le pot du tour n° ${modal?.round?.index ?? ''}`}
         description={
           modal
-            ? `Bénéficiaire : ${modal.round.beneficiaryName}. Il devra confirmer la réception.`
+            ? isGuestId(modal.round.beneficiaryId)
+              ? `Bénéficiaire : ${modal.round.beneficiaryName} (sans compte). Vous confirmerez ensuite la remise du pot.`
+              : `Bénéficiaire : ${modal.round.beneficiaryName}. Il devra confirmer la réception.`
             : ''
         }
         amount={modal?.round?.potAmount}
@@ -129,14 +145,21 @@ export default function RoundsTab({ detail }) {
       />
       <ConfirmModal
         show={modal?.type === 'received'}
-        title="Confirmer la réception du pot ?"
-        confirmLabel="Oui, j’ai reçu le pot"
+        title={
+          isGuestId(modal?.round?.beneficiaryId)
+            ? `Confirmer la remise du pot à ${modal.round.beneficiaryName} ?`
+            : 'Confirmer la réception du pot ?'
+        }
+        confirmLabel={
+          isGuestId(modal?.round?.beneficiaryId) ? 'Oui, le pot est remis' : 'Oui, j’ai reçu le pot'
+        }
         confirmVariant="success"
         isProcessing={isRunning}
         onConfirm={onConfirmReceived}
         onCancel={() => setModal(null)}
       >
-        Confirmez seulement si vous avez bien reçu{' '}
+        Confirmez seulement si{' '}
+        {isGuestId(modal?.round?.beneficiaryId) ? 'le pot a bien été remis' : 'vous avez bien reçu'}{' '}
         {modal?.round && <AmountDisplay amount={modal.round.potAmount} className="fw-bold" />}.
         Cette confirmation est inscrite dans l’historique.
       </ConfirmModal>

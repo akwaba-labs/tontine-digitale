@@ -10,6 +10,8 @@ import PasswordField from '../../../shared/components/form/PasswordField';
 import SubmitButton from '../../../shared/components/form/SubmitButton';
 import FormError from '../../../shared/components/FormError';
 import { useToast } from '../../../shared/hooks/useToast';
+import { useAuth } from '../../../shared/hooks/useAuth';
+import { setEmailNotifications } from '../services/userService';
 import { getErrorMessage } from '../../../shared/utils/errorMessages';
 import { changePasswordSchema, deleteAccountSchema } from '../logic/schemas';
 import { changePassword, deleteAccount, logout } from '../services/authService';
@@ -119,6 +121,42 @@ function DeleteAccountModal({ show, onHide }) {
   );
 }
 
+function EmailPreference() {
+  const { user, profile } = useAuth();
+  const { showSuccess, showError } = useToast();
+  const [isSaving, setIsSaving] = useState(false);
+  const enabled = profile?.emailNotifications !== false;
+
+  const onChange = async (event) => {
+    setIsSaving(true);
+    try {
+      await setEmailNotifications(user.uid, event.target.checked);
+      showSuccess(event.target.checked ? 'E-mails activés.' : 'E-mails désactivés.');
+    } catch (error) {
+      showError(getErrorMessage(error));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <>
+      <Form.Check
+        type="switch"
+        id="email-notifications"
+        label="Recevoir un e-mail à chaque nouvelle activité"
+        checked={enabled}
+        disabled={isSaving || !profile}
+        onChange={onChange}
+      />
+      <Form.Text>
+        Paiements déclarés ou confirmés, nouveaux membres, tirage au sort, versement du pot… Envoyé
+        à {user?.email}.
+      </Form.Text>
+    </>
+  );
+}
+
 export default function SettingsPage() {
   const navigate = useNavigate();
   const { showError } = useToast();
@@ -146,6 +184,12 @@ export default function SettingsPage() {
           </Card>
         </Col>
         <Col lg={6}>
+          <Card className="shadow-sm mb-4">
+            <Card.Body className="p-4">
+              <h2 className="h5 mb-3">E-mails</h2>
+              <EmailPreference />
+            </Card.Body>
+          </Card>
           <Card className="shadow-sm mb-4">
             <Card.Body className="p-4">
               <h2 className="h5 mb-3">Session</h2>

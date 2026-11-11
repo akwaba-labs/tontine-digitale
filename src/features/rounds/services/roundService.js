@@ -1,7 +1,12 @@
 import { collection, doc, onSnapshot, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { db } from '../../../config/firebase';
 import { fromSnapshot } from '../../../shared/services/firestoreUtils';
-import { EVENT_TYPES, NOTIFICATION_TYPES, PAYOUT_STATUS } from '../../../shared/constants/domain';
+import {
+  EVENT_TYPES,
+  NOTIFICATION_TYPES,
+  PAYOUT_STATUS,
+  isGuestId,
+} from '../../../shared/constants/domain';
 import { formatAmount } from '../../../shared/utils/formatAmount';
 import { tontineTabPath } from '../../../app/routePaths';
 import { addEvent } from '../../tontines/services/eventService';
@@ -45,7 +50,10 @@ export async function markPayoutSent(actor, tontine, round, { method, reference 
   await batch.commit();
 }
 
-/** Le bénéficiaire confirme avoir reçu le pot : la trace est complète dans les deux sens. */
+/**
+ * Le bénéficiaire confirme avoir reçu le pot : la trace est complète dans les deux sens.
+ * Pour un membre sans compte, l'organisateur confirme la remise à sa place.
+ */
 export async function confirmPayoutReceived(actor, tontine, round) {
   const batch = writeBatch(db);
   batch.update(roundRef(tontine.id, round.index), {
@@ -56,6 +64,7 @@ export async function confirmPayoutReceived(actor, tontine, round) {
   addEvent(batch, tontine.id, actor, EVENT_TYPES.PAYOUT_RECEIVED, {
     roundIndex: round.index,
     amount: round.potAmount,
+    ...(isGuestId(round.beneficiaryId) ? { onBehalfOf: round.beneficiaryName } : {}),
   });
   addNotification(batch, actor, {
     userId: tontine.ownerId,

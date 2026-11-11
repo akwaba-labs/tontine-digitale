@@ -26,6 +26,8 @@ export function describeEvent(event) {
       return `${actor} a annulé la tontine${p.reason ? ` : ${p.reason}` : '.'}`;
     case EVENT_TYPES.MEMBER_ACCEPTED:
       return `${actor} a accepté ${p.memberName} (${p.shares} part${p.shares > 1 ? 's' : ''}).`;
+    case EVENT_TYPES.MEMBER_ADDED:
+      return `${actor} a ajouté ${p.memberName} (${p.shares} part${p.shares > 1 ? 's' : ''}, sans compte).`;
     case EVENT_TYPES.MEMBER_REFUSED:
       return `${actor} a refusé la demande de ${p.memberName}.`;
     case EVENT_TYPES.MEMBER_REMOVED:
@@ -53,6 +55,9 @@ export function describeEvent(event) {
     case EVENT_TYPES.PAYOUT_SENT:
       return `${actor} a versé le pot du tour n° ${p.roundIndex} (${amount(p.amount)}) à ${p.beneficiaryName}${method(p.method)}.`;
     case EVENT_TYPES.PAYOUT_RECEIVED:
+      if (p.onBehalfOf) {
+        return `${actor} a confirmé avoir remis le pot du tour n° ${p.roundIndex} (${amount(p.amount)}) à ${p.onBehalfOf}.`;
+      }
       return `${actor} a confirmé avoir reçu le pot du tour n° ${p.roundIndex} (${amount(p.amount)}).`;
     default:
       return `${actor} : ${event.type}`;

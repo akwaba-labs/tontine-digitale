@@ -6,7 +6,7 @@ import prettier from 'eslint-config-prettier';
 import { defineConfig, globalIgnores } from 'eslint/config';
 
 export default defineConfig([
-  globalIgnores(['dist', 'coverage', 'emulator-data', '.firebase']),
+  globalIgnores(['dist', 'coverage', 'emulator-data', '.firebase', 'functions/lib']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [
@@ -23,7 +23,13 @@ export default defineConfig([
   },
   {
     // Fichiers exécutés par Node : configuration, scripts et tests.
-    files: ['*.config.js', 'scripts/**/*.js', '**/*.test.{js,jsx}', 'src/test/**/*.js'],
+    files: [
+      '*.config.js',
+      'scripts/**/*.js',
+      'functions/**/*.js',
+      '**/*.test.{js,jsx}',
+      'src/test/**/*.js',
+    ],
     languageOptions: { globals: { ...globals.node } },
   },
   prettier,

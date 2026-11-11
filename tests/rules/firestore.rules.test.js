@@ -13,7 +13,7 @@ import {
   where,
   writeBatch,
 } from 'firebase/firestore';
-import { ACTIVE_ID, DRAFT_ID, createTestEnv, draftTontine, seed } from './setup';
+import { ACTIVE_ID, DRAFT_ID, createTestEnv, draftTontine, member, round, seed } from './setup';
 
 let env;
 
@@ -674,5 +674,109 @@ describe('collectionGroup members', () => {
       getDocs(query(collectionGroup(dbAs('bob'), 'members'), where('userId', '==', 'bob'))),
     );
     await assertFails(getDocs(collectionGroup(dbAs('bob'), 'members')));
+  });
+});
+
+describe('membres sans compte', () => {
+  const GUEST = 'guest_AbCdEfGhIjKlMnOpQrSt';
+  const guest = (overrides = {}) => ({
+    userId: GUEST,
+    displayName: 'Awa Koné',
+    phone: '',
+    tontineName: 'Tontine en préparation',
+    role: 'MEMBER',
+    shares: 1,
+    status: 'ACTIVE',
+    isGuest: true,
+    joinedAt: now(),
+    updatedAt: now(),
+    ...overrides,
+  });
+
+  const addGuest = (uid, { member = guest(), id = GUEST, contact } = {}) => {
+    const db = dbAs(uid);
+    const batch = writeBatch(db);
+    batch.set(doc(db, `tontines/${DRAFT_ID}/members/${id}`), member);
+    batch.update(doc(db, `tontines/${DRAFT_ID}`), {
+      memberIds: ['owner', id],
+      updatedAt: now(),
+    });
+    if (contact) {
+      batch.set(doc(db, `tontines/${DRAFT_ID}/guestContacts/${id}`), contact);
+    }
+    return batch.commit();
+  };
+
+  it('l’organisateur ajoute un membre sans compte, avec un e-mail privé', async () => {
+    await assertSucceeds(
+      addGuest('owner', { contact: { email: 'awa@example.com', updatedAt: now() } }),
+    );
+  });
+
+  it('refuse l’ajout par quelqu’un d’autre que l’organisateur', async () => {
+    await assertFails(addGuest('bob'));
+  });
+
+  it('refuse un identifiant qui ne suit pas le format « guest_ »', async () => {
+    await assertFails(addGuest('owner', { id: 'mallory', member: guest({ userId: 'mallory' }) }));
+  });
+
+  it('refuse un membre sans compte co-organisateur ou en attente', async () => {
+    await assertFails(addGuest('owner', { member: guest({ role: 'CO_ORGANIZER' }) }));
+    await assertFails(addGuest('owner', { member: guest({ status: 'PENDING' }) }));
+  });
+
+  it('refuse l’ajout si la tontine a démarré', async () => {
+    const db = dbAs('owner');
+    await assertFails(setDoc(doc(db, `tontines/${ACTIVE_ID}/members/${GUEST}`), guest()));
+  });
+
+  it('un utilisateur ne peut pas se déclarer « sans compte » lui-même', async () => {
+    await assertFails(
+      setDoc(
+        doc(dbAs('zoe'), `tontines/${DRAFT_ID}/members/zoe`),
+        guest({ userId: 'zoe', status: 'PENDING' }),
+      ),
+    );
+  });
+
+  it('seul l’organisateur lit l’e-mail privé', async () => {
+    await addGuest('owner', { contact: { email: 'awa@example.com', updatedAt: now() } });
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), `tontines/${DRAFT_ID}/members/carl`), member('carl'));
+      await updateDoc(doc(context.firestore(), `tontines/${DRAFT_ID}`), {
+        memberIds: ['owner', GUEST, 'carl'],
+      });
+    });
+    await assertSucceeds(getDoc(doc(dbAs('owner'), `tontines/${DRAFT_ID}/guestContacts/${GUEST}`)));
+    await assertFails(getDoc(doc(dbAs('carl'), `tontines/${DRAFT_ID}/guestContacts/${GUEST}`)));
+  });
+
+  it('refuse un e-mail invalide', async () => {
+    await assertFails(addGuest('owner', { contact: { email: 'pas-un-email', updatedAt: now() } }));
+  });
+
+  it('l’organisateur confirme la remise du pot à un membre sans compte', async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(
+        doc(context.firestore(), `tontines/${ACTIVE_ID}/rounds/3`),
+        round(3, GUEST, '2020-03-01', { payoutStatus: 'SENT' }),
+      );
+    });
+    const received = { payoutStatus: 'RECEIVED', payoutConfirmedAt: now(), updatedAt: now() };
+    await assertFails(updateDoc(doc(dbAs('alice'), `tontines/${ACTIVE_ID}/rounds/3`), received));
+    await assertSucceeds(updateDoc(doc(dbAs('owner'), `tontines/${ACTIVE_ID}/rounds/3`), received));
+  });
+});
+
+describe('préférence e-mail', () => {
+  it('un utilisateur active ou coupe les e-mails, avec un booléen seulement', async () => {
+    const ref = doc(dbAs('alice'), 'users/alice');
+    await assertSucceeds(updateDoc(ref, { emailNotifications: false, updatedAt: now() }));
+    await assertFails(updateDoc(ref, { emailNotifications: 'non', updatedAt: now() }));
+  });
+
+  it('personne ne lit le journal des e-mails depuis l’application', async () => {
+    await assertFails(getDocs(collection(dbAs('alice'), 'mailLog')));
   });
 });

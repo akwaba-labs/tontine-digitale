@@ -19,6 +19,11 @@ export function createUserProfile(uid, { firstName, lastName, phone, email }) {
   });
 }
 
+/** Recevoir (ou non) un e-mail à chaque nouvelle activité de ses tontines. */
+export function setEmailNotifications(uid, enabled) {
+  return updateDoc(userRef(uid), { emailNotifications: enabled, updatedAt: serverTimestamp() });
+}
+
 export function updateUserProfile(uid, { firstName, lastName, phone }) {
   return updateDoc(userRef(uid), {
     firstName: firstName.trim(),

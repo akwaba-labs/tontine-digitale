@@ -46,7 +46,7 @@ npm run emulators
 ```
 
 - Interface des émulateurs : http://127.0.0.1:4000
-- Auth : 9099 · Firestore : 8080 · Storage : 9199 · Hosting : 5050 (sert le dossier `dist/`)
+- Auth : 9099 · Firestore : 8080 · Functions : 5001 · Storage : 9199 · Hosting : 5050 (sert le dossier `dist/`)
 
 Dans un second terminal :
 
@@ -86,23 +86,24 @@ gauche sur ordinateur.
 
 ## Scripts
 
-| Commande                 | Effet                                                         |
-| ------------------------ | ------------------------------------------------------------- |
-| `npm start`              | Émulateurs + application en une seule commande                |
-| `npm run start:demo`     | Idem, avec les données de démonstration déjà chargées         |
-| `npm run seed`           | Charge les données de démonstration (émulateurs lancés)       |
-| `npm run dev`            | Serveur de développement (vrai projet, lit `.env`)            |
-| `npm run dev:emulators`  | Serveur de développement branché sur les émulateurs           |
-| `npm run emulators`      | Démarre les émulateurs Firebase                               |
-| `npm run build`          | Build de production dans `dist/`                              |
-| `npm run preview`        | Sert le build localement                                      |
-| `npm run lint`           | ESLint                                                        |
-| `npm run format`         | Formate le code avec Prettier (`format:check` pour vérifier)  |
-| `npm test`               | Lance les tests une fois (`npm run test:watch` en continu)    |
-| `npm run test:rules`     | Tests des règles de sécurité (démarre ses propres émulateurs) |
-| `npm run deploy`         | Lint + tests + build, puis déploie tout sur Firebase          |
-| `npm run deploy:hosting` | Build puis déploie uniquement l'application                   |
-| `npm run deploy:rules`   | Déploie uniquement les règles et index Firestore/Storage      |
+| Commande                  | Effet                                                         |
+| ------------------------- | ------------------------------------------------------------- |
+| `npm start`               | Émulateurs + application en une seule commande                |
+| `npm run start:demo`      | Idem, avec les données de démonstration déjà chargées         |
+| `npm run seed`            | Charge les données de démonstration (émulateurs lancés)       |
+| `npm run dev`             | Serveur de développement (vrai projet, lit `.env`)            |
+| `npm run dev:emulators`   | Serveur de développement branché sur les émulateurs           |
+| `npm run emulators`       | Démarre les émulateurs Firebase                               |
+| `npm run build`           | Build de production dans `dist/`                              |
+| `npm run preview`         | Sert le build localement                                      |
+| `npm run lint`            | ESLint                                                        |
+| `npm run format`          | Formate le code avec Prettier (`format:check` pour vérifier)  |
+| `npm test`                | Lance les tests une fois (`npm run test:watch` en continu)    |
+| `npm run test:rules`      | Tests des règles de sécurité (démarre ses propres émulateurs) |
+| `npm run deploy`          | Lint + tests + build, puis déploie tout sur Firebase          |
+| `npm run deploy:hosting`  | Build puis déploie uniquement l'application                   |
+| `npm run deploy:rules`    | Déploie uniquement les règles et index Firestore/Storage      |
+| `npm run build:functions` | Assemble les Cloud Functions dans `functions/lib/`            |
 
 ## Données de démonstration
 
@@ -115,6 +116,33 @@ Avec les émulateurs lancés, `npm run seed` crée trois comptes (mot de passe `
 | `chantal@demo.ci` | Membre, avec des paiements à différents statuts  |
 
 Le script refuse de tourner sur un projet qui ne commence pas par `demo-`.
+
+## Membres sans compte
+
+L'organisateur peut ajouter une personne qui n'utilisera pas l'application (onglet **Membres** →
+« Ajouter sans compte »). Il enregistre ensuite ses paiements (« Paiement reçu ») et confirme pour
+elle la remise du pot. Son téléphone est visible des membres ; son e-mail, facultatif, reste visible
+par l'organisateur seul et sert uniquement à lui envoyer les e-mails.
+
+## E-mails
+
+À **chaque événement** d'une tontine (paiement déclaré, confirmé, rejeté, nouveau membre, tirage
+au sort, versement du pot…), la Cloud Function `emailMembersOnEvent` envoie un e-mail à tous les
+membres actifs, sauf l'auteur de l'action. Le texte est la même phrase que dans l'onglet
+Historique. Chaque utilisateur peut couper ces e-mails dans **Paramètres**.
+
+- **En local** : `npm start` lance aussi la fonction ; sans serveur SMTP, les e-mails sont
+  **simulés** et visibles dans l'interface des émulateurs (http://127.0.0.1:4000 → Firestore →
+  collection `mailLog`).
+- **En production** : les Cloud Functions demandent le **forfait Blaze** (paiement à l'usage ; le
+  quota gratuit couvre largement une petite application). Il faut un service d'envoi SMTP, par
+  exemple Brevo (300 e-mails/jour gratuits) :
+  1. Copier `functions/.env.example` en `functions/.env.<id-du-projet>` et le remplir (`APP_URL`,
+     `MAIL_FROM`, `SMTP_HOST`, `SMTP_USER`, et `FUNCTIONS_REGION` = région de la base Firestore).
+  2. Enregistrer le mot de passe SMTP comme secret : `npx firebase functions:secrets:set SMTP_PASS`.
+  3. `npm run deploy` (les fonctions sont assemblées automatiquement avant l'envoi).
+- L'adresse d'expédition doit appartenir à un domaine vérifié chez le fournisseur SMTP, sinon les
+  e-mails finissent en spam.
 
 ## Application installable et hors ligne
 
