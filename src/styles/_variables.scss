@@ -1,44 +1,76 @@
 // Surcharges des variables Bootstrap (à charger AVANT bootstrap/scss/bootstrap).
 
-// Couleurs de la marque
-$brand-green: #1e7b4f; // épargne, « payé »
-$brand-gold: #e8a317; // accents, « déclaré / en attente »
-$brand-gray-bg: #f5f6f4; // fond de page
+// Couleurs de la marque — tons chauds, inspirés des pagnes et du marché
+$brand-green: #136f47; // vert forêt : épargne, « payé »
+$brand-green-dark: #0c4a30;
+$brand-saffron: #f2a12c; // safran : accents, « déclaré / en attente »
+$brand-terracotta: #c8553d; // terre cuite : décor uniquement
+$brand-cream: #fbf7ef; // fond « papier »
+$brand-sand: #f3ead9; // sections alternées
+$brand-ink: #1b2420; // texte
+$brand-line: #e9dfcc; // bordures chaudes
 
 $primary: $brand-green;
 $success: $brand-green;
-$warning: $brand-gold;
-$danger: #c62828; // « en retard »
-$info: #1769aa;
+$warning: $brand-saffron;
+$danger: #b42318; // « en retard »
+$info: #2f5d8a;
+$secondary: #5f6b64;
 
 // Fonds
-$body-bg: $brand-gray-bg;
-$body-color: #1f2a24;
+$body-bg: $brand-cream;
+$body-color: $brand-ink;
+$border-color: $brand-line;
 
-// Police système : aucun téléchargement de police, plus léger sur les connexions lentes.
+// Polices auto-hébergées (disponibles hors ligne via la PWA)
 $font-family-sans-serif:
+  'Figtree Variable',
   system-ui,
   -apple-system,
   'Segoe UI',
   Roboto,
-  'Helvetica Neue',
-  Arial,
   sans-serif;
+$font-family-display: 'Bricolage Grotesque Variable', $font-family-sans-serif;
+$headings-font-family: $font-family-display;
 $font-size-base: 1.0625rem; // 17 px : plus lisible sur téléphone
 $headings-font-weight: 700;
+$headings-color: $brand-ink;
+$link-color: $brand-green;
+$link-decoration: underline;
+$link-underline-offset: 0.2em;
 
 // Gros boutons et champs, faciles à toucher
 $input-btn-padding-y: 0.7rem;
-$input-btn-padding-x: 1.1rem;
+$input-btn-padding-x: 1.25rem;
 $input-btn-padding-y-lg: 0.9rem;
 $btn-font-weight: 600;
+$btn-border-radius: 50rem;
+$btn-border-radius-sm: 50rem;
+$btn-border-radius-lg: 50rem;
+$input-border-color: #d9ccb4;
+$input-bg: #fff;
 
-$border-radius: 0.6rem;
-$border-radius-lg: 0.85rem;
-$border-radius-sm: 0.4rem;
+$border-radius: 0.75rem;
+$border-radius-lg: 1.1rem;
+$border-radius-sm: 0.5rem;
 
-$card-border-color: rgba(0, 0, 0, 0.06);
+$card-border-color: $brand-line;
+$card-bg: #fff;
+$list-group-bg: #fff;
+$progress-bg: $brand-sand;
 $card-cap-bg: #fff;
+$card-border-radius: 1.1rem;
 
+$badge-border-radius: 50rem;
+$badge-font-weight: 600;
+$badge-padding-y: 0.4em;
+$badge-padding-x: 0.75em;
+
+$nav-tabs-link-active-bg: $brand-cream;
 $navbar-padding-y: 0.75rem;
 $toast-max-width: 420px;
+
+$accordion-bg: #fff;
+$accordion-border-color: $brand-line;
+$accordion-button-active-bg: $brand-sand;
+$accordion-button-active-color: $brand-ink;

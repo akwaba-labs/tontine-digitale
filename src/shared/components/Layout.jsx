@@ -1,11 +1,13 @@
-import { Badge, Container } from 'react-bootstrap';
+import { Badge, Col, Container, Row } from 'react-bootstrap';
 import { Suspense } from 'react';
-import { Outlet } from 'react-router';
+import { Link, Outlet } from 'react-router';
 import Loader from './Loader';
 import OfflineBanner from './OfflineBanner';
 import { APP_NAME } from '../../config/app';
 import AppNavbar from './AppNavbar';
 import BottomNav from './BottomNav';
+import BrandLogo, { BrandName } from './BrandLogo';
+import { ROUTES } from '../../app/routePaths';
 
 const isUsingEmulators = import.meta.env.VITE_USE_EMULATORS === 'true';
 
@@ -50,6 +52,56 @@ export function AppLayout() {
   );
 }
 
+function SiteFooter() {
+  return (
+    <footer className="site-footer">
+      <Container>
+        <Row className="g-4">
+          <Col md={6}>
+            <div className="d-flex align-items-center gap-2 mb-3">
+              <BrandLogo />
+              <BrandName className="fs-5" />
+            </div>
+            <p className="mb-0" style={{ maxWidth: '26rem' }}>
+              Le carnet de bord de votre tontine. Les versements se font comme d’habitude, en
+              espèces ou par Mobile Money ; ici, on les note, on les confirme, et tout le monde voit
+              la même chose.
+            </p>
+          </Col>
+          <Col xs={6} md={3}>
+            <div className="site-footer__title">Commencer</div>
+            <ul className="list-unstyled d-grid gap-2 mb-0">
+              <li>
+                <Link to={ROUTES.register}>Créer un compte</Link>
+              </li>
+              <li>
+                <Link to={ROUTES.join}>Rejoindre une tontine</Link>
+              </li>
+            </ul>
+          </Col>
+          <Col xs={6} md={3}>
+            <div className="site-footer__title">Mon compte</div>
+            <ul className="list-unstyled d-grid gap-2 mb-0">
+              <li>
+                <Link to={ROUTES.login}>Se connecter</Link>
+              </li>
+              <li>
+                <Link to={ROUTES.forgotPassword}>Mot de passe oublié</Link>
+              </li>
+            </ul>
+          </Col>
+        </Row>
+        <div className="site-footer__bottom d-flex flex-column flex-sm-row justify-content-between gap-2">
+          <span>
+            © {new Date().getFullYear()} {APP_NAME}
+          </span>
+          <span>Fait pour les tontines d’Afrique de l’Ouest · FCFA</span>
+        </div>
+      </Container>
+    </footer>
+  );
+}
+
 /** Mise en page des pages publiques (accueil, connexion, inscription…). */
 export function PublicLayout() {
   return (
@@ -61,10 +113,7 @@ export function PublicLayout() {
           <Outlet />
         </Suspense>
       </main>
-      <footer className="py-4 text-center text-secondary small border-top bg-white">
-        © {new Date().getFullYear()} {APP_NAME} · L'application ne déplace pas d'argent : elle trace
-        les cotisations.
-      </footer>
+      <SiteFooter />
       <EmulatorBadge />
     </div>
   );

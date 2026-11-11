@@ -1,10 +1,9 @@
 import { Container, Nav, Navbar } from 'react-bootstrap';
 import { Link, NavLink } from 'react-router';
 import { Settings } from 'lucide-react';
-import { APP_NAME } from '../../config/app';
 import { ROUTES } from '../../app/routePaths';
 import { APP_NAV_ITEMS } from '../../app/navigation';
-import BrandLogo from './BrandLogo';
+import BrandLogo, { BrandName } from './BrandLogo';
 import UnreadBadge from './UnreadBadge';
 import { useAuth } from '../hooks/useAuth';
 
@@ -19,15 +18,11 @@ export default function AppNavbar({ variant = 'app' }) {
   const brandTarget = user ? ROUTES.dashboard : ROUTES.home;
 
   return (
-    <Navbar bg="white" className="border-bottom shadow-sm" sticky="top">
+    <Navbar className="app-navbar" sticky="top">
       <Container>
-        <Navbar.Brand
-          as={Link}
-          to={brandTarget}
-          className="d-flex align-items-center gap-2 fw-bold text-primary"
-        >
+        <Navbar.Brand as={Link} to={brandTarget} className="d-flex align-items-center gap-2">
           <BrandLogo />
-          <span>{APP_NAME}</span>
+          <BrandName />
         </Navbar.Brand>
 
         {variant === 'app' ? (

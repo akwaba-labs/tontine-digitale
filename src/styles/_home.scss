@@ -1,0 +1,496 @@
+// Page d'accueil publique.
+
+.home-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 3rem 0 4rem;
+
+  @include media-breakpoint-up(lg) {
+    padding: 4.5rem 0 5.5rem;
+  }
+
+  // Grande tache safran derrière le téléphone
+  &::before {
+    content: '';
+    position: absolute;
+    right: -12rem;
+    top: 2rem;
+    width: 34rem;
+    height: 34rem;
+    border-radius: 46% 54% 42% 58% / 52% 44% 56% 48%;
+    background: rgba($brand-saffron, 0.22);
+    z-index: -1;
+  }
+}
+
+.home-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.9rem;
+  margin-bottom: 1.25rem;
+  border-radius: 50rem;
+  background: #fff;
+  border: 1px solid $brand-line;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: $secondary;
+
+  &__dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: $brand-terracotta;
+  }
+}
+
+.home-title {
+  font-size: clamp(2.3rem, 7vw, 3.9rem);
+  font-weight: 800;
+  line-height: 1.02;
+  margin-bottom: 1.75rem;
+}
+
+// Mot souligné « à la main »
+.scribble {
+  position: relative;
+  white-space: nowrap;
+  color: $primary;
+
+  svg {
+    position: absolute;
+    left: -2%;
+    bottom: -0.32em;
+    width: 104%;
+    height: 0.45em;
+    color: $brand-saffron;
+    pointer-events: none;
+  }
+}
+
+.home-lead {
+  font-size: 1.2rem;
+  color: $secondary;
+  max-width: 34rem;
+}
+
+.home-reassure {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  margin: 1.75rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.92rem;
+  color: $secondary;
+
+  li {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  svg {
+    color: $primary;
+  }
+}
+
+// --- Téléphone d'illustration (construit en HTML, pas une capture) ----------------------
+.phone-stage {
+  position: relative;
+  max-width: 20rem;
+  margin: 3rem auto 2rem;
+
+  @include media-breakpoint-up(lg) {
+    margin-top: 0;
+  }
+}
+
+.phone {
+  position: relative;
+  padding: 0.6rem;
+  border-radius: 2.4rem;
+  background: $brand-ink;
+  box-shadow: 0 30px 60px -20px rgba(27, 36, 32, 0.45);
+  transform: rotate(2deg);
+
+  &__screen {
+    border-radius: 1.9rem;
+    background: $brand-cream;
+    overflow: hidden;
+    font-size: 0.8rem;
+  }
+
+  &__notch {
+    width: 5rem;
+    height: 1.1rem;
+    margin: 0 auto;
+    border-radius: 0 0 0.8rem 0.8rem;
+    background: $brand-ink;
+  }
+
+  &__head {
+    padding: 0.6rem 1rem 1rem;
+    background: $primary;
+    background-image: $wax-pattern;
+    background-size: 40px;
+    background-blend-mode: soft-light;
+    color: #fff;
+  }
+
+  &__title {
+    font-family: $font-family-display;
+    font-weight: 700;
+    font-size: 1rem;
+  }
+
+  &__progress {
+    height: 0.4rem;
+    margin-top: 0.6rem;
+    border-radius: 1rem;
+    background: rgba(#fff, 0.25);
+
+    span {
+      display: block;
+      height: 100%;
+      border-radius: 1rem;
+      background: $brand-saffron;
+    }
+  }
+
+  &__list {
+    margin: 0;
+    padding: 0.5rem 0.75rem 1rem;
+    list-style: none;
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.5rem 0.4rem;
+    border-bottom: 1px dashed $brand-line;
+
+    &:last-child {
+      border-bottom: 0;
+    }
+  }
+
+  &__avatar {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 1.9rem;
+    height: 1.9rem;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 0.72rem;
+    color: #fff;
+  }
+}
+
+.pill {
+  margin-left: auto;
+  padding: 0.15rem 0.55rem;
+  border-radius: 50rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+
+  &--paid {
+    background: rgba($primary, 0.12);
+    color: $primary;
+  }
+
+  &--declared {
+    background: rgba($brand-saffron, 0.25);
+    color: darken($brand-saffron, 28%);
+  }
+
+  &--late {
+    background: rgba($danger, 0.1);
+    color: $danger;
+  }
+}
+
+// Carte flottante « c'est son tour »
+.payout-card {
+  position: absolute;
+  left: -2.5rem;
+  bottom: -1.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 1rem;
+  background: #fff;
+  border: 2px solid $brand-ink;
+  box-shadow: 4px 4px 0 $brand-ink;
+  transform: rotate(-4deg);
+  font-size: 0.85rem;
+
+  @include media-breakpoint-down(sm) {
+    left: -0.5rem;
+  }
+
+  strong {
+    display: block;
+    font-family: $font-family-display;
+    font-size: 1.3rem;
+    color: $primary;
+  }
+}
+
+.sticker {
+  position: absolute;
+  right: -1.5rem;
+  top: -1.5rem;
+  display: grid;
+  place-items: center;
+  width: 5.2rem;
+  height: 5.2rem;
+  border-radius: 50%;
+  background: $brand-terracotta;
+  color: #fff;
+  font-family: $font-family-display;
+  font-weight: 700;
+  font-size: 0.78rem;
+  line-height: 1.1;
+  text-align: center;
+  transform: rotate(12deg);
+  box-shadow: 0 6px 16px rgba($brand-terracotta, 0.35);
+}
+
+// --- Sections -----------------------------------------------------------------------------
+.home-section {
+  padding: 4rem 0;
+
+  @include media-breakpoint-up(lg) {
+    padding: 5.5rem 0;
+  }
+
+  &--sand {
+    background: $brand-sand;
+  }
+}
+
+.section-eyebrow {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: $brand-terracotta;
+}
+
+.section-title {
+  font-size: clamp(1.8rem, 4.5vw, 2.6rem);
+  font-weight: 800;
+  line-height: 1.1;
+  max-width: 40rem;
+}
+
+// Bulles « ça vous rappelle quelque chose ? »
+.bubble {
+  position: relative;
+  padding: 1rem 1.25rem;
+  border-radius: 1.25rem 1.25rem 1.25rem 0.25rem;
+  background: #fff;
+  border: 1px solid $brand-line;
+  font-size: 1.05rem;
+  font-weight: 500;
+
+  &:nth-child(2n) {
+    border-radius: 1.25rem 1.25rem 0.25rem 1.25rem;
+    background: #dcf3e4; // vert des messageries
+    border-color: #c6e7d2;
+  }
+}
+
+// Étapes numérotées
+.step {
+  &__number {
+    display: block;
+    font-family: $font-family-display;
+    font-size: 4.5rem;
+    font-weight: 800;
+    line-height: 1;
+    color: transparent;
+    -webkit-text-stroke: 2px $primary;
+    margin-bottom: 0.75rem;
+  }
+
+  h3 {
+    font-size: 1.3rem;
+    font-weight: 700;
+  }
+
+  p {
+    color: $secondary;
+    margin: 0;
+  }
+}
+
+// Lignes de fonctionnalités
+.feature-row + .feature-row {
+  margin-top: 3.5rem;
+}
+
+.feature-visual {
+  padding: 1.5rem;
+  border-radius: 1.5rem;
+  background: #fff;
+  border: 1px solid $brand-line;
+
+  &--green {
+    background: $primary;
+    background-image: $wax-pattern;
+    background-size: 56px;
+    background-blend-mode: soft-light;
+    border-color: $primary;
+    color: #fff;
+  }
+}
+
+.draw-ball {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background: #fff;
+  color: $brand-ink;
+  font-family: $font-family-display;
+  font-weight: 800;
+
+  &--picked {
+    width: 4rem;
+    height: 4rem;
+    background: $brand-saffron;
+    font-size: 1.25rem;
+    box-shadow: 0 0 0 6px rgba(#fff, 0.25);
+  }
+}
+
+.log-line {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px dashed $brand-line;
+  font-size: 0.92rem;
+
+  &:last-child {
+    border-bottom: 0;
+  }
+
+  time {
+    flex-shrink: 0;
+    width: 3.2rem;
+    color: $secondary;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.check-list {
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    gap: 0.6rem;
+    margin-bottom: 0.5rem;
+  }
+
+  svg {
+    flex-shrink: 0;
+    margin-top: 0.2rem;
+    color: $primary;
+  }
+}
+
+// Ticket « code d'invitation »
+.invite-ticket {
+  position: relative;
+  padding: 2rem 1.5rem;
+  border-radius: 1.25rem;
+  background: #fff;
+  border: 2px dashed $brand-saffron;
+
+  &__code {
+    display: inline-block;
+    padding: 0.4rem 1rem;
+    border-radius: 0.6rem;
+    background: $brand-sand;
+    font-family: $font-family-display;
+    font-weight: 800;
+    font-size: 1.5rem;
+    letter-spacing: 0.2em;
+  }
+}
+
+.home-faq {
+  max-width: 46rem;
+
+  .accordion-button {
+    font-weight: 600;
+    font-size: 1.05rem;
+  }
+}
+
+// Bandeau final
+.home-cta {
+  position: relative;
+  overflow: hidden;
+  padding: 4rem 0;
+  background: $brand-green-dark;
+  background-image: $wax-pattern;
+  background-size: 56px;
+  background-blend-mode: soft-light;
+  color: #fff;
+
+  h2 {
+    color: #fff;
+    font-size: clamp(1.8rem, 4.5vw, 2.8rem);
+    font-weight: 800;
+    line-height: 1.1;
+  }
+}
+
+// --- Pied de page public ------------------------------------------------------------------
+.site-footer {
+  padding: 3rem 0 2rem;
+  background: $brand-ink;
+  color: rgba(#fff, 0.72);
+  font-size: 0.95rem;
+
+  a {
+    color: #fff;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  .brand-name {
+    color: #fff;
+
+    em {
+      color: $brand-saffron;
+    }
+  }
+
+  &__title {
+    margin-bottom: 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(#fff, 0.5);
+  }
+
+  &__bottom {
+    margin-top: 2.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(#fff, 0.12);
+    font-size: 0.85rem;
+  }
+}
