@@ -1,0 +1,6 @@
+dist
+coverage
+node_modules
+emulator-data
+.firebase
+package-lock.json

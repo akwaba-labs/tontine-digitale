@@ -1,0 +1,44 @@
+// Surcharges des variables Bootstrap (à charger AVANT bootstrap/scss/bootstrap).
+
+// Couleurs de la marque
+$brand-green: #1e7b4f; // épargne, « payé »
+$brand-gold: #e8a317; // accents, « déclaré / en attente »
+$brand-gray-bg: #f5f6f4; // fond de page
+
+$primary: $brand-green;
+$success: $brand-green;
+$warning: $brand-gold;
+$danger: #c62828; // « en retard »
+$info: #1769aa;
+
+// Fonds
+$body-bg: $brand-gray-bg;
+$body-color: #1f2a24;
+
+// Police système : aucun téléchargement de police, plus léger sur les connexions lentes.
+$font-family-sans-serif:
+  system-ui,
+  -apple-system,
+  'Segoe UI',
+  Roboto,
+  'Helvetica Neue',
+  Arial,
+  sans-serif;
+$font-size-base: 1.0625rem; // 17 px : plus lisible sur téléphone
+$headings-font-weight: 700;
+
+// Gros boutons et champs, faciles à toucher
+$input-btn-padding-y: 0.7rem;
+$input-btn-padding-x: 1.1rem;
+$input-btn-padding-y-lg: 0.9rem;
+$btn-font-weight: 600;
+
+$border-radius: 0.6rem;
+$border-radius-lg: 0.85rem;
+$border-radius-sm: 0.4rem;
+
+$card-border-color: rgba(0, 0, 0, 0.06);
+$card-cap-bg: #fff;
+
+$navbar-padding-y: 0.75rem;
+$toast-max-width: 420px;

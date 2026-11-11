@@ -1,0 +1,30 @@
+# Dépendances et build
+node_modules/
+dist/
+coverage/
+
+# Variables d'environnement (ne jamais commiter de vraies clés)
+.env
+.env.local
+.env.*.local
+.env.production
+
+# Firebase
+.firebase/
+emulator-data/
+firebase-debug.log*
+firestore-debug.log*
+storage-debug.log*
+ui-debug.log*
+database-debug.log*
+
+# Journaux
+npm-debug.log*
+*.log
+
+# Éditeurs et outils
+.idea/
+.junie/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store

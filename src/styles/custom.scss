@@ -1,0 +1,153 @@
+@import 'variables';
+@import 'bootstrap/scss/bootstrap';
+
+// Hauteur de la barre de navigation du bas (mobile)
+$bottom-nav-height: 4.25rem;
+
+// Zone de toucher minimale recommandée (48 px)
+.btn,
+.form-control,
+.form-select {
+  min-height: 3rem;
+}
+
+.btn-sm {
+  min-height: 2.25rem;
+}
+
+// Liens d'évitement pour la navigation au clavier
+.skip-link {
+  position: absolute;
+  left: 0.5rem;
+  top: -3rem;
+  z-index: $zindex-fixed + 10;
+  padding: 0.5rem 1rem;
+  background: $primary;
+  color: #fff;
+  border-radius: $border-radius;
+
+  &:focus {
+    top: 0.5rem;
+  }
+}
+
+.app-main {
+  padding-top: 1.25rem;
+  padding-bottom: 2rem;
+}
+
+// Sur mobile, on laisse la place à la barre du bas
+@include media-breakpoint-down(md) {
+  .app-main--with-bottom-nav {
+    padding-bottom: calc(#{$bottom-nav-height} + 1.5rem + env(safe-area-inset-bottom));
+  }
+}
+
+.brand-logo {
+  width: 2rem;
+  height: 2rem;
+}
+
+// Barre de navigation du bas (mobile uniquement)
+.bottom-nav {
+  height: calc(#{$bottom-nav-height} + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  background: #fff;
+  border-top: 1px solid $border-color;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+
+  &__list {
+    display: flex;
+    height: $bottom-nav-height;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__item {
+    flex: 1 1 0;
+  }
+
+  &__link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    height: 100%;
+    color: $gray-600;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-decoration: none;
+
+    &.active {
+      color: $primary;
+    }
+
+    &:focus-visible {
+      outline: 3px solid rgba($primary, 0.4);
+      outline-offset: -3px;
+    }
+  }
+
+  // Bouton central « Créer » mis en avant
+  &__link--primary &__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    margin-top: -1.1rem;
+    border-radius: 50%;
+    background: $primary;
+    color: #fff;
+    box-shadow: 0 3px 8px rgba($primary, 0.35);
+  }
+}
+
+.page-header {
+  margin-bottom: 1.25rem;
+
+  h1 {
+    font-size: 1.6rem;
+    margin-bottom: 0.25rem;
+  }
+}
+
+.empty-state {
+  padding: 2.5rem 1rem;
+  text-align: center;
+
+  &__icon {
+    color: $primary;
+    opacity: 0.8;
+  }
+
+  &__message {
+    max-width: 30rem;
+    margin-inline: auto;
+    color: $gray-600;
+  }
+}
+
+.amount {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+// Onglets défilables sur petits écrans
+.nav-tabs-scroll {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+
+  .nav-link {
+    white-space: nowrap;
+  }
+}
+
+.hero {
+  background: linear-gradient(160deg, $primary, darken($primary, 8%));
+  color: #fff;
+}

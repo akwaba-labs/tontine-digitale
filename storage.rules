@@ -1,0 +1,11 @@
+rules_version = '2';
+
+// Phase 1 : tout est refusé par défaut.
+// Les règles des preuves de paiement (membres uniquement, images, 2 Mo max) arrivent en phase 2.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
