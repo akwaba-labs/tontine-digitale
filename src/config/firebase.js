@@ -32,12 +32,27 @@ if (!useEmulators && appCheckSiteKey && typeof window !== 'undefined') {
   });
 }
 
+// Clé de session : le cache local s'est bloqué, on s'en passe jusqu'à la fermeture de l'onglet.
+export const NO_PERSISTENCE_KEY = 'firestore-no-persistence';
+
+function persistenceDisabledForSession() {
+  try {
+    return sessionStorage.getItem(NO_PERSISTENCE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Cache local persistant (IndexedDB) dans le navigateur : les données déjà vues restent
  * consultables hors ligne et s'affichent instantanément sur les connexions lentes.
  */
 function createFirestore() {
-  const canPersist = typeof window !== 'undefined' && 'indexedDB' in window && env.MODE !== 'test';
+  const canPersist =
+    typeof window !== 'undefined' &&
+    'indexedDB' in window &&
+    env.MODE !== 'test' &&
+    !persistenceDisabledForSession();
   if (!canPersist) return getFirestore(firebaseApp);
   try {
     return initializeFirestore(firebaseApp, {
