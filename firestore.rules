@@ -79,6 +79,13 @@ service cloud.firestore {
       return signedIn() && uid() in t.memberIds;
     }
 
+    // Administrateur de la plateforme (back-office) : lecture seule de l'ensemble des données,
+    // sauf les coordonnées privées des membres sans compte et les notifications personnelles.
+    // Le document admins/{uid} n'est créé que côté serveur (script make-admin).
+    function isAdmin() {
+      return signedIn() && exists(/databases/$(database)/documents/admins/$(uid()));
+    }
+
     function isOwnerOf(t) {
       return signedIn() && t.ownerId == uid();
     }
@@ -118,9 +125,14 @@ service cloud.firestore {
         && isNow(d.updatedAt);
     }
 
-    match /users/{userId} {
+    match /admins/{userId} {
       allow get: if signedIn() && uid() == userId;
-      allow list: if false;
+      allow list, write: if false;
+    }
+
+    match /users/{userId} {
+      allow get: if (signedIn() && uid() == userId) || isAdmin();
+      allow list: if isAdmin();
       allow create: if signedIn() && uid() == userId
         && validUser(incoming()) && isNow(incoming().createdAt);
       allow update: if signedIn() && uid() == userId
@@ -239,7 +251,7 @@ service cloud.firestore {
     }
 
     match /tontines/{tontineId} {
-      allow read: if isMemberOf(existing());
+      allow read: if isMemberOf(existing()) || isAdmin();
       allow create: if signedIn() && validNewTontine(incoming());
       allow update: if (isOwnerOf(existing()) && validTontineUpdate(existing(), incoming()))
         || memberLeavesTontine(existing(), incoming());
@@ -276,7 +288,8 @@ service cloud.firestore {
 
       match /members/{memberId} {
         allow read: if isMemberOf(tontineOf(tontineId))
-          || (signedIn() && memberId == uid());
+          || (signedIn() && memberId == uid())
+          || isAdmin();
 
         allow create: if (selfCreatesMember() || ownerAddsGuest());
 
@@ -369,7 +382,7 @@ service cloud.firestore {
       // ---------------------------------------------------------------- Tours
 
       match /rounds/{roundId} {
-        allow read: if isMemberOf(tontineOf(tontineId));
+        allow read: if isMemberOf(tontineOf(tontineId)) || isAdmin();
 
         // Créés en un seul lot au démarrage de la tontine, à partir de l'ordre de passage.
         allow create: if isOwnerOf(tontineOf(tontineId))
@@ -438,7 +451,7 @@ service cloud.firestore {
       // Avec un dépôt par tour, le numéro du dépôt est celui du tour (et depositIndex peut manquer).
 
       match /contributions/{contributionId} {
-        allow read: if isMemberOf(tontineOf(tontineId));
+        allow read: if isMemberOf(tontineOf(tontineId)) || isAdmin();
         allow create: if validNewContribution()
           && (memberDeclares() || managerRecordsCash() || ownerAppliesPenaltyOnMissing());
         allow update: if unchangedIdentity()
@@ -601,7 +614,7 @@ service cloud.firestore {
       // ------------------------------------------------- Journal (ajout uniquement)
 
       match /events/{eventId} {
-        allow read: if isMemberOf(tontineOf(tontineId));
+        allow read: if isMemberOf(tontineOf(tontineId)) || isAdmin();
         // L'auteur doit être membre avant OU après le lot d'écritures
         // (création de la tontine, départ d'un membre…).
         allow create: if signedIn()
@@ -619,7 +632,27 @@ service cloud.firestore {
 
     // Demandes en attente d'un utilisateur (requête collectionGroup('members')).
     match /{path=**}/members/{memberId} {
-      allow read: if signedIn() && existing().userId == uid();
+      allow read: if (signedIn() && existing().userId == uid()) || isAdmin();
+    }
+
+    // Back-office : statistiques et activité de toute la plateforme.
+    match /{path=**}/contributions/{contributionId} {
+      allow read: if isAdmin();
+    }
+
+    match /{path=**}/events/{eventId} {
+      allow read: if isAdmin();
+    }
+
+    // Journal des e-mails et état du résumé quotidien : écrits par les Cloud Functions seules.
+    match /mailLog/{mailId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /digestState/{stateId} {
+      allow read: if isAdmin();
+      allow write: if false;
     }
 
     // ------------------------------------------------------------ Notifications

@@ -2,6 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 import { assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
 import {
   collection,
+  collectionGroup,
   deleteDoc,
   doc,
   getDoc,
@@ -941,6 +942,57 @@ describe('plusieurs dépôts par tour', () => {
         depositsPerRound: 5,
         updatedAt: now(),
       }),
+    );
+  });
+});
+
+describe('back-office (administrateur de la plateforme)', () => {
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'admins/boss'), { email: 'boss@example.com' });
+    });
+  });
+
+  it('l’administrateur lit les utilisateurs, les tontines et leur détail', async () => {
+    const db = dbAs('boss');
+    await assertSucceeds(getDocs(collection(db, 'users')));
+    await assertSucceeds(getDocs(collection(db, 'tontines')));
+    await assertSucceeds(getDoc(doc(db, `tontines/${ACTIVE_ID}`)));
+    await assertSucceeds(getDocs(collection(db, `tontines/${ACTIVE_ID}/members`)));
+    await assertSucceeds(getDocs(collection(db, `tontines/${ACTIVE_ID}/contributions`)));
+    await assertSucceeds(getDocs(collection(db, `tontines/${ACTIVE_ID}/events`)));
+    await assertSucceeds(getDocs(collectionGroup(db, 'contributions')));
+    await assertSucceeds(getDocs(collection(db, 'mailLog')));
+  });
+
+  it('un utilisateur ordinaire ne voit ni la liste des utilisateurs ni toutes les tontines', async () => {
+    const db = dbAs('alice');
+    await assertFails(getDocs(collection(db, 'users')));
+    await assertFails(getDocs(collection(db, 'tontines')));
+    await assertFails(getDocs(collectionGroup(db, 'contributions')));
+  });
+
+  it('l’administrateur est en lecture seule', async () => {
+    const db = dbAs('boss');
+    await assertFails(updateDoc(doc(db, `tontines/${ACTIVE_ID}`), { name: 'Piratée' }));
+    await assertFails(deleteDoc(doc(db, 'users/alice')));
+  });
+
+  it('personne ne peut se déclarer administrateur depuis l’application', async () => {
+    await assertFails(setDoc(doc(dbAs('alice'), 'admins/alice'), { email: 'a@example.com' }));
+    await assertSucceeds(getDoc(doc(dbAs('boss'), 'admins/boss')));
+    await assertFails(getDoc(doc(dbAs('alice'), 'admins/boss')));
+  });
+
+  it('les e-mails privés des membres sans compte restent réservés à l’organisateur', async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(
+        doc(context.firestore(), `tontines/${DRAFT_ID}/guestContacts/guest_AbCdEfGhIjKlMnOpQrSt`),
+        { email: 'awa@example.com' },
+      );
+    });
+    await assertFails(
+      getDoc(doc(dbAs('boss'), `tontines/${DRAFT_ID}/guestContacts/guest_AbCdEfGhIjKlMnOpQrSt`)),
     );
   });
 });

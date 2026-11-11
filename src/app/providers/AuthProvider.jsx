@@ -66,6 +66,8 @@ export default function AuthProvider({ children }) {
       isLoading: !isResolved || !profileLoaded,
       displayName: getDisplayName(profile, user),
       isAdmin: Boolean(user) && adminState.uid === user.uid && adminState.isAdmin,
+      // Le statut d'administrateur est connu (évite de refuser /admin pendant le chargement).
+      isAdminResolved: !user || adminState.uid === user.uid,
     };
   }, [authState, profileState, adminState]);
 

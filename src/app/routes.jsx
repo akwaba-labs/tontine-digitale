@@ -1,6 +1,8 @@
 import { AppLayout, PublicLayout } from '../shared/components/Layout';
 import { ROUTES } from './routePaths';
-import { RedirectIfAuthenticated, RequireAuth } from './RouteGuards';
+import { Suspense } from 'react';
+import Loader from '../shared/components/Loader';
+import { RedirectIfAuthenticated, RequireAdmin, RequireAuth } from './RouteGuards';
 import NotFoundPage from './NotFoundPage';
 import HomePage from '../features/home/pages/HomePage';
 import {
@@ -18,6 +20,11 @@ import {
   DeclarePaymentPage,
   NotificationsPage,
   OrganizerPage,
+  AdminLayout,
+  AdminOverviewPage,
+  AdminUsersPage,
+  AdminTontinesPage,
+  AdminMailsPage,
 } from './lazyPages';
 
 // Définition des routes, partagée entre l'application et les tests.
@@ -54,6 +61,26 @@ export const appRoutes = [
           { path: ROUTES.notifications, element: <NotificationsPage /> },
           { path: ROUTES.profile, element: <ProfilePage /> },
           { path: ROUTES.settings, element: <SettingsPage /> },
+        ],
+      },
+      {
+        // Back-office de la plateforme (administrateurs uniquement).
+        element: <RequireAdmin />,
+        children: [
+          {
+            element: (
+              <Suspense fallback={<Loader fullPage />}>
+                <AdminLayout />
+              </Suspense>
+            ),
+            children: [
+              { path: ROUTES.admin, element: <AdminOverviewPage /> },
+              { path: ROUTES.adminUsers, element: <AdminUsersPage /> },
+              { path: ROUTES.adminTontines, element: <AdminTontinesPage /> },
+              { path: ROUTES.adminTontineDetail, element: <TontineDetailPage /> },
+              { path: ROUTES.adminMails, element: <AdminMailsPage /> },
+            ],
+          },
         ],
       },
     ],

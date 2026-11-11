@@ -1,0 +1,209 @@
+// Back-office : barre latérale sombre, tableaux.
+
+.admin-shell {
+  min-height: 100vh;
+
+  @include media-breakpoint-up(lg) {
+    display: flex;
+  }
+}
+
+.admin-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem 0.9rem;
+  background-color: $brand-ink;
+  background-image: $wax-pattern;
+  background-size: 64px;
+  background-blend-mode: soft-light;
+  color: rgba(#fff, 0.8);
+
+  @include media-breakpoint-up(lg) {
+    position: sticky;
+    top: 0;
+    flex: 0 0 16.5rem;
+    height: 100vh;
+  }
+
+  &__brand {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.25rem 0.6rem;
+    text-decoration: none;
+
+    .brand-name {
+      display: block;
+      color: #fff;
+
+      em {
+        color: $brand-saffron;
+      }
+    }
+  }
+
+  &__tag {
+    display: inline-block;
+    margin-top: 0.15rem;
+    padding: 0.05rem 0.55rem;
+    border-radius: 50rem;
+    background: $brand-saffron;
+    color: $brand-ink;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  &__nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.15rem;
+
+    @include media-breakpoint-up(lg) {
+      flex-direction: column;
+      flex-wrap: nowrap;
+      flex: 1 1 auto;
+    }
+  }
+
+  &__link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.75rem;
+    border-radius: 0.75rem;
+    color: rgba(#fff, 0.75);
+    font-weight: 500;
+    text-decoration: none;
+
+    &:hover {
+      background: rgba(#fff, 0.08);
+      color: #fff;
+    }
+
+    &.active {
+      background: #fff;
+      color: $brand-ink;
+      font-weight: 700;
+    }
+  }
+
+  &__footer {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  &__user {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.75rem;
+    border-radius: 0.9rem;
+    background: rgba(#fff, 0.08);
+    color: #fff;
+    min-width: 0;
+  }
+}
+
+.admin-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 1.5rem 1rem 3rem;
+
+  @include media-breakpoint-up(lg) {
+    padding: 2rem 2.5rem 3rem;
+  }
+}
+
+.admin-table {
+  --bs-table-bg: transparent;
+
+  th {
+    padding: 0.85rem 1rem;
+    background: $brand-cream;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: $secondary;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 0.85rem 1rem;
+    vertical-align: middle;
+  }
+}
+
+.admin-pill {
+  display: inline-block;
+  padding: 0.2rem 0.7rem;
+  border-radius: 50rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+
+  &--green {
+    background: rgba($primary, 0.12);
+    color: $primary;
+  }
+
+  &--blue {
+    background: rgba($info, 0.12);
+    color: $info;
+  }
+
+  &--red {
+    background: rgba($danger, 0.1);
+    color: $danger;
+  }
+
+  &--grey {
+    background: $brand-sand;
+    color: $secondary;
+  }
+}
+
+.bar-row + .bar-row {
+  margin-top: 0.9rem;
+}
+
+.bar {
+  height: 0.6rem;
+  border-radius: 1rem;
+  background: $brand-sand;
+  overflow: hidden;
+
+  span {
+    display: block;
+    height: 100%;
+    border-radius: 1rem;
+  }
+
+  &--green {
+    background: $primary;
+  }
+
+  &--saffron {
+    background: $brand-saffron;
+  }
+
+  &--blue {
+    background: $info;
+  }
+
+  &--grey {
+    background: $gray-500;
+  }
+}
+
+.mail-preview {
+  margin: 0;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  background: $brand-cream;
+  font-family: $font-family-sans-serif;
+  font-size: 0.92rem;
+  white-space: pre-wrap;
+}

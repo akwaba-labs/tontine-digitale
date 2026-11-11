@@ -117,6 +117,27 @@ Avec les émulateurs lancés, `npm run seed` crée trois comptes (mot de passe `
 
 Le script refuse de tourner sur un projet qui ne commence pas par `demo-`.
 
+## Espaces : membre, organisateur, back-office
+
+- **Espace membre** (`/tableau-de-bord`) : prochain dépôt, prochain pot, à faire, échéances.
+- **Espace organisateur** (`/organisateur`) : paiements à confirmer (en un clic), demandes
+  d'adhésion, pots à verser et collecte du dépôt en cours, pour toutes les tontines qu'on gère.
+  On passe d'un espace à l'autre avec la bascule « Membre / Organisateur ».
+- **Back-office de la plateforme** (`/admin`), réservé aux administrateurs : chiffres clés,
+  utilisateurs, toutes les tontines (consultables en détail), journal des e-mails. Accès en
+  **lecture seule** ; les e-mails privés des membres sans compte et les notifications restent
+  invisibles.
+
+Donner (ou retirer) l'accès au back-office à un compte existant :
+
+```bash
+npm run make-admin -- prenom@exemple.ci            # émulateurs
+npm run make-admin -- prenom@exemple.ci --retirer
+# Vrai projet : GCLOUD_PROJECT=<id> GOOGLE_APPLICATION_CREDENTIALS=<clé> npm run make-admin -- …
+```
+
+Avec les données de démonstration, `admin@demo.ci` (mot de passe `demo1234`) est administrateur.
+
 ## Membres sans compte
 
 L'organisateur peut ajouter une personne qui n'utilisera pas l'application (onglet **Membres** →

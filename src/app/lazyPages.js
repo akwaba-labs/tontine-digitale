@@ -16,6 +16,11 @@ export const DeclarePaymentPage = lazy(
   () => import('../features/contributions/pages/DeclarePaymentPage'),
 );
 export const OrganizerPage = lazy(() => import('../features/organizer/pages/OrganizerPage'));
+export const AdminLayout = lazy(() => import('../features/admin/components/AdminLayout'));
+export const AdminOverviewPage = lazy(() => import('../features/admin/pages/AdminOverviewPage'));
+export const AdminUsersPage = lazy(() => import('../features/admin/pages/AdminUsersPage'));
+export const AdminTontinesPage = lazy(() => import('../features/admin/pages/AdminTontinesPage'));
+export const AdminMailsPage = lazy(() => import('../features/admin/pages/AdminMailsPage'));
 export const NotificationsPage = lazy(
   () => import('../features/notifications/pages/NotificationsPage'),
 );

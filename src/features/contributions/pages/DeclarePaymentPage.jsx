@@ -4,6 +4,7 @@ import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-r
 import { useForm, useWatch } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
+import { HandCoins } from 'lucide-react';
 import PageHeader from '../../../shared/components/PageHeader';
 import Loader from '../../../shared/components/Loader';
 import AmountDisplay from '../../../shared/components/AmountDisplay';
@@ -87,6 +88,7 @@ export default function DeclarePaymentPage() {
     resetOptions: { keepDirtyValues: true },
   });
   const watchedRound = useWatch({ control, name: 'roundIndex' });
+  const isCash = useWatch({ control, name: 'method' }) === 'CASH';
 
   if (detail.isLoading) return <Loader />;
   if (detail.error || detail.notFound) return <TontineLoadError error={detail.error} />;
@@ -195,14 +197,38 @@ export default function DeclarePaymentPage() {
                       </option>
                     ))}
                   </TextField>
+                  {isCash && (
+                    <Alert variant="light" className="small border d-flex gap-2">
+                      <HandCoins
+                        size={20}
+                        className="text-primary flex-shrink-0"
+                        aria-hidden="true"
+                      />
+                      <span>
+                        <strong>Paiement en espèces : la preuve, c’est la confirmation.</strong>{' '}
+                        Remettez l’argent à l’organisateur (ou à la personne désignée) : il confirme
+                        l’avoir reçu dans l’application, et c’est inscrit dans l’historique que
+                        personne ne peut modifier. Si vous avez un reçu signé, ajoutez-en la photo.
+                      </span>
+                    </Alert>
+                  )}
                   <TextField
-                    label="Référence de la transaction"
-                    help="Le numéro reçu par SMS après le paiement Mobile Money (facultatif pour les espèces)."
+                    label={isCash ? 'Remis à (facultatif)' : 'Référence de la transaction'}
+                    placeholder={isCash ? 'Ex. Aminata, la trésorière' : 'Ex. MP231111.1234.A56789'}
+                    help={
+                      isCash
+                        ? 'La personne à qui vous avez donné l’argent, et quand si besoin.'
+                        : 'Le numéro reçu par SMS après le paiement Mobile Money.'
+                    }
                     registration={register('reference')}
                     error={errors.reference}
                   />
                   <Form.Group className="mb-3" controlId="proof">
-                    <Form.Label className="fw-semibold">Capture d’écran (facultatif)</Form.Label>
+                    <Form.Label className="fw-semibold">
+                      {isCash
+                        ? 'Photo du reçu signé (facultatif)'
+                        : 'Capture d’écran du SMS (facultatif)'}
+                    </Form.Label>
                     <Form.Control
                       type="file"
                       accept={ACCEPTED_TYPES.join(',')}

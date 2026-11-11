@@ -35,3 +35,11 @@ export function RedirectIfAuthenticated() {
   }
   return <Outlet />;
 }
+
+/** Back-office : réservé aux administrateurs de la plateforme. */
+export function RequireAdmin() {
+  const { isAdmin, isAdminResolved, isLoading } = useAuth();
+  if (isLoading || !isAdminResolved) return <Loader fullPage />;
+  if (!isAdmin) return <Navigate to={ROUTES.dashboard} replace />;
+  return <Outlet />;
+}

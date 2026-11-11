@@ -18,6 +18,12 @@ d'heure, pas d'ambiguïté. Les montants sont des **entiers** en FCFA.
 Lisible uniquement par son propriétaire. Le nom et le téléphone utiles aux autres membres sont
 recopiés dans `members/{uid}` au moment de la demande d'adhésion.
 
+## `admins/{uid}` — administrateurs de la plateforme
+
+`email, grantedAt`. Créé uniquement côté serveur (`npm run make-admin`). Donne au back-office un
+accès en **lecture seule** à `users`, `tontines` et leurs sous-collections (sauf `guestContacts`),
+`mailLog` et `digestState`. Chacun peut seulement lire son propre document.
+
 ## `invites/{code}` — recherche par code
 
 `tontineId, tontineName, ownerName, amount, frequency, totalShares, createdAt`.

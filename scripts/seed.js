@@ -60,6 +60,12 @@ const people = {
     phone: '+2250101010103',
     email: 'chantal@demo.ci',
   },
+  admin: {
+    firstName: 'Admin',
+    lastName: 'Plateforme',
+    phone: '+2250707070700',
+    email: 'admin@demo.ci',
+  },
 };
 const name = (key) => `${people[key].firstName} ${people[key].lastName}`;
 
@@ -438,6 +444,8 @@ async function seedDraftTontine(uids) {
 const uids = await createUsers();
 await seedActiveTontine(uids);
 await seedDraftTontine(uids);
+// Accès au back-office (/admin) pour le compte administrateur de démonstration.
+await db.doc(`admins/${uids.admin}`).set({ email: people.admin.email, grantedAt: Timestamp.now() });
 
 console.log('\nDonnées de démonstration créées.');
 console.log(`Mot de passe pour tous les comptes : ${PASSWORD}`);
@@ -445,5 +453,6 @@ for (const [key, person] of Object.entries(people)) {
   console.log(`  ${person.email.padEnd(20)} ${name(key)}`);
 }
 console.log(
-  '  → Aminata organise « Tontine des commerçantes » (en cours), Bakary « Tontine du bureau » (en préparation).\n',
+  '  → Aminata organise « Tontine des commerçantes » (en cours), Bakary « Tontine du bureau » (en préparation).\n' +
+    '  → admin@demo.ci a accès au back-office : http://localhost:8081/admin\n',
 );
