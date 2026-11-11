@@ -509,11 +509,17 @@ service cloud.firestore {
             && isNow(d.updatedAt);
         }
 
-        function validDeclaration(d) {
+        // La preuve est rangée dans le dossier de la personne qui l'a envoyée
+        // (le membre qui déclare, ou l'organisateur qui enregistre le paiement).
+        function validProof(path, uploaderId) {
+          return path == null || (path is string
+            && path.matches('^proofs/' + tontineId + '/' + uploaderId + '/.+'));
+        }
+
+        function validDeclaration(d, uploaderId) {
           return d.method in methods()
             && isText(d.reference, 0, 100)
-            && (d.proofPath == null || (d.proofPath is string
-              && d.proofPath.matches('^proofs/' + tontineId + '/' + d.memberId + '/.+')))
+            && validProof(d.get('proofPath', null), uploaderId)
             && isNow(d.declaredAt);
         }
 
@@ -522,7 +528,7 @@ service cloud.firestore {
           return d.memberId == uid()
             && d.status == 'DECLARED'
             && d.penaltyAmount == 0
-            && validDeclaration(d)
+            && validDeclaration(d, d.memberId)
             && !('confirmedAt' in d) && !('confirmedBy' in d) && !('rejectedAt' in d);
         }
 
@@ -532,8 +538,7 @@ service cloud.firestore {
           return isManagerOf(tontineOf(tontineId))
             && d.status == 'CONFIRMED'
             && d.penaltyAmount == 0
-            && validDeclaration(d)
-            && d.proofPath == null
+            && validDeclaration(d, uid())
             && isNow(d.confirmedAt)
             && d.confirmedBy == uid();
         }
@@ -565,7 +570,7 @@ service cloud.firestore {
           return existing().memberId == uid()
             && existing().status in ['REJECTED', 'LATE']
             && d.status == 'DECLARED'
-            && validDeclaration(d)
+            && validDeclaration(d, d.memberId)
             && onlyChanged(['status', 'method', 'reference', 'proofPath', 'declaredAt', 'updatedAt']);
         }
 
@@ -591,7 +596,9 @@ service cloud.firestore {
             && d.status == 'CONFIRMED'
             && d.method in methods()
             && isText(d.reference, 0, 100)
-            && onlyChanged(['status', 'method', 'reference', 'declaredAt', 'confirmedAt', 'confirmedBy', 'updatedAt'])
+            && onlyChanged(['status', 'method', 'reference', 'proofPath', 'declaredAt', 'confirmedAt', 'confirmedBy', 'updatedAt'])
+            && (d.get('proofPath', null) == existing().get('proofPath', null)
+              || validProof(d.get('proofPath', null), uid()))
             && isNow(d.declaredAt)
             && isNow(d.confirmedAt)
             && d.confirmedBy == uid();

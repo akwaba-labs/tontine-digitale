@@ -35,7 +35,7 @@ export default function TontineDetailPage() {
 
   const { tontine, isOwner, me } = detail;
   const canEdit = isOwner && [TONTINE_STATUS.DRAFT, TONTINE_STATUS.ACTIVE].includes(tontine.status);
-  const canDeclare = tontine.status === TONTINE_STATUS.ACTIVE && me;
+  const canDeclare = tontine.status === TONTINE_STATUS.ACTIVE && (me || detail.isManager);
   const pendingCount = detail.members.filter((m) => m.status === 'PENDING').length;
   const toConfirmCount = detail.isManager
     ? detail.contributions.filter((c) => c.status === 'DECLARED').length
@@ -61,7 +61,7 @@ export default function TontineDetailPage() {
             {canDeclare && (
               <Link to={declarePaymentPath(tontine.id)} className="btn btn-primary">
                 <Wallet size={18} className="me-1" aria-hidden="true" />
-                Déclarer un paiement
+                {detail.isManager ? 'Enregistrer un paiement' : 'Déclarer un paiement'}
               </Link>
             )}
           </>

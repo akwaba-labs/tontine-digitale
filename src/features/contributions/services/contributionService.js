@@ -190,10 +190,13 @@ export function rejectPayment(actor, tontine, contribution, reason, deposit) {
 /** Paiement remis directement à l'organisateur (espèces…) : enregistré et confirmé d'un coup. */
 export async function recordPayment(
   actor,
-  { tontine, member, round, existing, method, reference },
+  { tontine, member, round, existing, method, reference, proofFile = null },
 ) {
   const amount = expectedAmount(tontine.amount, member.shares);
+  // Photo du reçu (facultative) : rangée dans le dossier de l'organisateur qui l'envoie.
+  const proofPath = proofFile ? await uploadProof(tontine.id, actor.uid, proofFile) : null;
   const confirmation = {
+    ...(proofPath ? { proofPath } : {}),
     status: CONTRIBUTION_STATUS.CONFIRMED,
     method,
     reference: reference.trim(),
@@ -214,7 +217,7 @@ export async function recordPayment(
       memberName: member.displayName,
       amount,
       penaltyAmount: 0,
-      proofPath: null,
+      proofPath,
     });
   }
   addEvent(batch, tontine.id, actor, EVENT_TYPES.PAYMENT_RECORDED, {

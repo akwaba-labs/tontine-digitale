@@ -579,6 +579,44 @@ describe('contributions', () => {
     );
   });
 
+  it('l’organisateur enregistre son propre paiement et celui d’un membre, avec la photo du reçu', async () => {
+    const recorded = (memberId, memberName, amount, proofPath) => ({
+      roundIndex: 3,
+      memberId,
+      memberName,
+      amount,
+      penaltyAmount: 0,
+      method: 'CASH',
+      reference: 'Reçu n° 12',
+      proofPath,
+      status: 'CONFIRMED',
+      declaredAt: now(),
+      confirmedAt: now(),
+      confirmedBy: 'owner',
+      updatedAt: now(),
+    });
+    const db = dbAs('owner');
+    await assertSucceeds(
+      setDoc(
+        doc(db, `${path}/3_owner`),
+        recorded('owner', 'Olivier', 10000, `proofs/${ACTIVE_ID}/owner/recu.jpg`),
+      ),
+    );
+    await assertSucceeds(
+      setDoc(
+        doc(db, `${path}/3_co`),
+        recorded('co', 'Coralie', 10000, `proofs/${ACTIVE_ID}/owner/recu-co.jpg`),
+      ),
+    );
+    // La photo doit venir du dossier de l'organisateur qui enregistre, pas d'un autre.
+    await assertFails(
+      setDoc(
+        doc(db, `${path}/3_alice`),
+        recorded('alice', 'Alice', 20000, `proofs/${ACTIVE_ID}/co/recu.jpg`),
+      ),
+    );
+  });
+
   it('la pénalité s’applique après le délai de grâce, pas avant', async () => {
     const penalty = (roundIndex) => ({
       roundIndex,
