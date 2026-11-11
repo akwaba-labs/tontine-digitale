@@ -92,6 +92,11 @@ service cloud.firestore {
       return 'drawAt' in t;
     }
 
+    // Nombre de dépôts avant chaque remise du pot (absent = 1, tontines plus anciennes).
+    function perRound(t) {
+      return t.get('depositsPerRound', 1);
+    }
+
     // Membre sans compte (ajouté par l'organisateur) : identifiant « guest_ » + 20 caractères.
     // Aucun identifiant Firebase Auth ne contient « _ » : pas de confusion possible.
     function isGuestId(id) {
@@ -128,7 +133,7 @@ service cloud.firestore {
     // invites/{code} permet de trouver une tontine par son code sans pouvoir la lire.
 
     function validInvite(d) {
-      return d.keys().hasOnly(['tontineId', 'tontineName', 'ownerId', 'ownerName', 'amount', 'frequency', 'totalShares', 'createdAt'])
+      return d.keys().hasOnly(['tontineId', 'tontineName', 'ownerId', 'ownerName', 'amount', 'frequency', 'depositsPerRound', 'totalShares', 'createdAt'])
         && d.tontineId is string
         && isText(d.tontineName, 2, 80)
         && isText(d.ownerName, 1, 130)
@@ -155,7 +160,7 @@ service cloud.firestore {
     // ----------------------------------------------------------------- Tontines
 
     function tontineKeys() {
-      return ['name', 'description', 'amount', 'frequency', 'startDate', 'totalShares',
+      return ['name', 'description', 'amount', 'frequency', 'depositsPerRound', 'startDate', 'totalShares',
         'graceDays', 'penaltyAmount', 'status', 'ownerId', 'ownerName', 'inviteCode',
         'memberIds', 'coOrganizerIds', 'orderMode', 'payoutOrder', 'drawAt', 'drawBy',
         'activatedAt', 'closedAt', 'createdAt', 'updatedAt'];
@@ -166,7 +171,8 @@ service cloud.firestore {
         && isText(d.name, 2, 80)
         && isText(d.description, 0, 500)
         && isIntBetween(d.amount, 100, 100000000)
-        && d.frequency in ['WEEKLY', 'BIWEEKLY', 'MONTHLY', 'EVERY_2_MONTHS', 'QUARTERLY', 'SEMIANNUAL', 'EVERY_9_MONTHS']
+        && d.frequency in ['DAILY', 'EVERY_2_DAYS', 'WEEKLY', 'BIWEEKLY', 'MONTHLY', 'EVERY_2_MONTHS', 'QUARTERLY', 'SEMIANNUAL', 'EVERY_9_MONTHS']
+        && (!('depositsPerRound' in d) || isIntBetween(d.depositsPerRound, 1, 366))
         && isIsoDate(d.startDate)
         && isIntBetween(d.totalShares, 2, 60)
         && isIntBetween(d.graceDays, 0, 30)
@@ -216,6 +222,7 @@ service cloud.firestore {
           && d.totalShares == r.totalShares && d.payoutOrder == r.payoutOrder
           && d.orderMode == r.orderMode && d.memberIds == r.memberIds
           && d.graceDays == r.graceDays && d.penaltyAmount == r.penaltyAmount
+          && perRound(d) == perRound(r)
         ))
         // Le tirage au sort est enregistré une seule fois : impossible de le relancer.
         && (!isDrawn(r) || (
@@ -374,14 +381,19 @@ service cloud.firestore {
         allow delete: if false;
 
         function validNewRound(t, d) {
-          return d.keys().hasOnly(['index', 'dueDate', 'beneficiaryId', 'beneficiaryName', 'shareNumber', 'potAmount', 'payoutStatus', 'createdAt', 'updatedAt'])
+          return d.keys().hasOnly(['index', 'dueDate', 'depositDates', 'beneficiaryId', 'beneficiaryName', 'shareNumber', 'potAmount', 'payoutStatus', 'createdAt', 'updatedAt'])
             && isIntBetween(d.index, 1, t.totalShares)
             && roundId == string(d.index)
             && isIsoDate(d.dueDate)
             && d.beneficiaryId == t.payoutOrder[d.index - 1].memberId
             && d.beneficiaryName is string
             && d.shareNumber is int
-            && d.potAmount == t.amount * t.totalShares
+            && d.potAmount == t.amount * t.totalShares * perRound(t)
+            // Plusieurs dépôts par tour : leurs dates, la dernière étant la remise du pot.
+            && (perRound(t) == 1
+              ? !('depositDates' in d)
+              : (d.depositDates is list && d.depositDates.size() == perRound(t)
+                && d.depositDates[perRound(t) - 1] == d.dueDate))
             && d.payoutStatus == 'PENDING'
             && isNow(d.createdAt)
             && isNow(d.updatedAt);
@@ -422,7 +434,8 @@ service cloud.firestore {
       }
 
       // ---------------------------------------------------------- Cotisations
-      // Identifiant : « {numéro du tour}_{uid du membre} » (une cotisation par membre et par tour).
+      // Identifiant : « {numéro du dépôt}_{id du membre} » (une cotisation par membre et par dépôt).
+      // Avec un dépôt par tour, le numéro du dépôt est celui du tour (et depositIndex peut manquer).
 
       match /contributions/{contributionId} {
         allow read: if isMemberOf(tontineOf(tontineId));
@@ -433,7 +446,7 @@ service cloud.firestore {
         allow delete: if false;
 
         function contributionKeys() {
-          return ['roundIndex', 'memberId', 'memberName', 'amount', 'penaltyAmount', 'method',
+          return ['roundIndex', 'depositIndex', 'memberId', 'memberName', 'amount', 'penaltyAmount', 'method',
             'reference', 'proofPath', 'status', 'declaredAt', 'confirmedAt', 'confirmedBy',
             'rejectedAt', 'rejectedBy', 'rejectionReason', 'penaltyAppliedAt', 'updatedAt'];
         }
@@ -450,9 +463,19 @@ service cloud.firestore {
           return get(roundPath(tontineId, d.roundIndex)).data;
         }
 
-        // Retard : après l'échéance + le délai de grâce (jour J + N inclus).
+        function depositIndexOf(d) {
+          return d.get('depositIndex', d.roundIndex);
+        }
+
+        // Date du dépôt : enregistrée avec le tour (depositDates), ou la date du tour.
+        function depositDueDate(t, d) {
+          let r = roundOf(d);
+          return perRound(t) == 1 ? r.dueDate : r.depositDates[(depositIndexOf(d) - 1) % perRound(t)];
+        }
+
+        // Retard : après la date du dépôt + le délai de grâce (jour J + N inclus).
         function isPastGrace(t, d) {
-          return request.time >= isoToTimestamp(roundOf(d).dueDate) + duration.value(t.graceDays + 1, 'd');
+          return request.time >= isoToTimestamp(depositDueDate(t, d)) + duration.value(t.graceDays + 1, 'd');
         }
 
         function validNewContribution() {
@@ -461,7 +484,10 @@ service cloud.firestore {
           return d.keys().hasOnly(contributionKeys())
             && t.status == 'ACTIVE'
             && isIntBetween(d.roundIndex, 1, t.totalShares)
-            && contributionId == string(d.roundIndex) + '_' + d.memberId
+            && isIntBetween(depositIndexOf(d), 1, t.totalShares * perRound(t))
+            // Le dépôt appartient bien à ce tour.
+            && (depositIndexOf(d) - 1 - (depositIndexOf(d) - 1) % perRound(t)) == (d.roundIndex - 1) * perRound(t)
+            && contributionId == string(depositIndexOf(d)) + '_' + d.memberId
             && d.memberId in t.memberIds
             && memberOfContribution(d).status == 'ACTIVE'
             && isText(d.memberName, 1, 130)
@@ -508,11 +534,12 @@ service cloud.firestore {
             && d.penaltyAmount == t.penaltyAmount
             && isNow(d.penaltyAppliedAt)
             && isPastGrace(t, d)
-            && d.keys().hasOnly(['roundIndex', 'memberId', 'memberName', 'amount', 'penaltyAmount', 'status', 'penaltyAppliedAt', 'updatedAt']);
+            && d.keys().hasOnly(['roundIndex', 'depositIndex', 'memberId', 'memberName', 'amount', 'penaltyAmount', 'status', 'penaltyAppliedAt', 'updatedAt']);
         }
 
         function unchangedIdentity() {
           return incoming().roundIndex == existing().roundIndex
+            && incoming().get('depositIndex', 0) == existing().get('depositIndex', 0)
             && incoming().memberId == existing().memberId
             && incoming().amount == existing().amount
             && incoming().keys().hasOnly(contributionKeys())

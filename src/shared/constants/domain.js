@@ -7,7 +7,10 @@ export const TONTINE_STATUS = Object.freeze({
   CANCELLED: 'CANCELLED',
 });
 
+// Fréquence des dépôts (cotisations). Le pot est remis tous les `depositsPerRound` dépôts.
 export const FREQUENCY = Object.freeze({
+  DAILY: 'DAILY',
+  EVERY_2_DAYS: 'EVERY_2_DAYS',
   WEEKLY: 'WEEKLY',
   BIWEEKLY: 'BIWEEKLY',
   MONTHLY: 'MONTHLY',
@@ -18,6 +21,8 @@ export const FREQUENCY = Object.freeze({
 });
 
 export const FREQUENCY_LABELS = Object.freeze({
+  DAILY: 'Chaque jour',
+  EVERY_2_DAYS: 'Tous les 2 jours',
   WEEKLY: 'Chaque semaine',
   BIWEEKLY: 'Toutes les deux semaines',
   MONTHLY: 'Chaque mois',
@@ -27,8 +32,16 @@ export const FREQUENCY_LABELS = Object.freeze({
   EVERY_9_MONTHS: 'Tous les 9 mois',
 });
 
-// Nombre de mois entre deux tours, pour les fréquences mensuelles et plus longues.
-export const MONTHS_PER_ROUND = Object.freeze({
+// Nombre de jours entre deux dépôts, pour les fréquences en jours et en semaines.
+export const DAYS_PER_DEPOSIT = Object.freeze({
+  DAILY: 1,
+  EVERY_2_DAYS: 2,
+  WEEKLY: 7,
+  BIWEEKLY: 14,
+});
+
+// Nombre de mois entre deux dépôts, pour les fréquences mensuelles et plus longues.
+export const MONTHS_PER_DEPOSIT = Object.freeze({
   MONTHLY: 1,
   EVERY_2_MONTHS: 2,
   QUARTERLY: 3,
@@ -145,5 +158,6 @@ export const LIMITS = Object.freeze({
   maxShares: 60,
   maxSharesPerMember: 10,
   maxGraceDays: 30,
+  maxDepositsPerRound: 366,
   maxProofSizeBytes: 2 * 1024 * 1024,
 });

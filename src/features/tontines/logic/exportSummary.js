@@ -12,8 +12,9 @@ export function buildMemberRows({
   tontine,
   members,
   rounds,
+  deposits,
   contributionsById,
-  currentRoundIndex,
+  currentDepositIndex,
   today,
 }) {
   return activeMembers(members).map((member) => {
@@ -22,8 +23,9 @@ export function buildMemberRows({
       tontine,
       member,
       rounds,
+      deposits,
       contributionsById,
-      currentRoundIndex,
+      currentDepositIndex,
       today,
     });
     return {
@@ -39,25 +41,25 @@ export function buildMemberRows({
   });
 }
 
-/** Détail des cotisations des tours déjà commencés (jusqu'au tour en cours). */
+/** Détail des cotisations des dépôts déjà arrivés (jusqu'au dépôt en cours). */
 export function buildContributionRows({
   tontine,
   members,
-  rounds,
+  deposits,
   contributionsById,
-  currentRoundIndex,
+  currentDepositIndex,
   today,
 }) {
   const rows = [];
-  for (const round of rounds) {
-    if (currentRoundIndex !== null && round.index > currentRoundIndex) break;
+  for (const deposit of deposits) {
+    if (currentDepositIndex !== null && deposit.index > currentDepositIndex) break;
     for (const member of activeMembers(members)) {
       const contribution =
-        contributionsById.get(contributionId(round.index, member.userId)) ?? null;
-      const status = getEffectiveStatus(contribution, round, tontine.graceDays, today);
+        contributionsById.get(contributionId(deposit.index, member.userId)) ?? null;
+      const status = getEffectiveStatus(contribution, deposit, tontine.graceDays, today);
       rows.push({
-        round: round.index,
-        dueDate: round.dueDate,
+        round: deposit.roundIndex,
+        dueDate: deposit.dueDate,
         name: member.displayName,
         amount: tontine.amount * member.shares,
         penalty: contribution?.penaltyAmount ?? 0,

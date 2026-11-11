@@ -11,6 +11,7 @@ import {
   summarizeMember,
   summarizeRound,
 } from './contributions';
+import { buildDeposits } from '../../rounds/logic/schedule';
 
 const tontine = { amount: 10000, graceDays: 3, penaltyAmount: 1000, totalShares: 3 };
 const round1 = {
@@ -147,8 +148,9 @@ describe('summarizeMember', () => {
       tontine,
       member: members[0],
       rounds: [round3, round1, round2],
+      deposits: buildDeposits([round3, round1, round2]),
       contributionsById: indexContributions(contributions),
-      currentRoundIndex: 3,
+      currentDepositIndex: 3,
       today: '2026-12-20',
     });
     expect(summary.totalPaid).toBe(21000);

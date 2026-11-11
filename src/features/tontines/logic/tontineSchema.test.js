@@ -6,6 +6,7 @@ const valid = {
   description: '',
   amount: '25000',
   frequency: 'MONTHLY',
+  depositsPerRound: '1',
   startDate: '2027-01-31',
   totalShares: '10',
   ownerShares: '1',

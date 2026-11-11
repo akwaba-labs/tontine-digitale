@@ -15,7 +15,7 @@ import { ROUTES } from '../../../app/routePaths';
 import { useMyTontines } from '../../tontines/hooks/useMyTontines';
 import TontineCard from '../../tontines/components/TontineCard';
 import { indexContributions, summarizeMember } from '../../contributions/logic/contributions';
-import { getCurrentRoundIndex } from '../../rounds/logic/schedule';
+import { buildDeposits, getCurrentDepositIndex } from '../../rounds/logic/schedule';
 import { useTontineBundles } from '../hooks/useTontineBundles';
 import { buildTodos, buildTotals } from '../logic/todos';
 import TodoList from '../components/TodoList';
@@ -37,13 +37,15 @@ function TontineSituation({ tontine, bundle, uid, today }) {
   const me = bundle?.members?.find((m) => m.userId === uid && m.status === MEMBER_STATUS.ACTIVE);
   if (tontine.status !== TONTINE_STATUS.ACTIVE || !me || !bundle?.rounds || !bundle?.contributions)
     return null;
+  const deposits = buildDeposits(bundle.rounds);
   const summary = summarizeMember({
     userId: uid,
     tontine,
     member: me,
     rounds: bundle.rounds,
+    deposits,
     contributionsById: indexContributions(bundle.contributions),
-    currentRoundIndex: getCurrentRoundIndex(bundle.rounds, today),
+    currentDepositIndex: getCurrentDepositIndex(deposits, today),
     today,
   });
   return (

@@ -7,7 +7,7 @@ import { ORDER_MODE } from '../../../shared/constants/domain';
 import { formatDate } from '../../../shared/utils/formatDate';
 import { activeMembers } from '../../contributions/logic/contributions';
 import { performDraw, setManualOrder } from '../../tontines/services/tontineService';
-import { buildSlots, getDueDate, sumShares } from '../logic/schedule';
+import { buildSlots, getRoundDueDate, sumShares } from '../logic/schedule';
 import { moveSlot, validatePayoutOrder } from '../logic/order';
 
 function slotLabel(slot, sharesByMember) {
@@ -100,7 +100,7 @@ export default function OrderEditor({ detail }) {
               <div className="flex-grow-1">
                 <div className="fw-semibold">{slotLabel(slot, sharesByMember)}</div>
                 <div className="small text-secondary">
-                  {formatDate(getDueDate(tontine.startDate, tontine.frequency, i + 1))}
+                  {formatDate(getRoundDueDate(tontine, i + 1))}
                 </div>
               </div>
               {canEdit && (

@@ -6,7 +6,10 @@ import { buildReminderMessage, whatsappShareLink } from '../../../shared/utils/w
 import { tontineDetailPath } from '../../../app/routePaths';
 import { summarizeRound } from '../logic/contributions';
 
-/** Vue organisateur d'un tour : taux de paiement, pot collecté / attendu, retardataires. */
+/**
+ * Vue organisateur d'un dépôt (`round` : un dépôt de buildDeposits ; avec un dépôt par tour,
+ * c'est le tour) : taux de paiement, montant collecté / attendu, retardataires.
+ */
 export default function RoundCollectionCard({ detail, round }) {
   const { tontine, members, contributionsById, today, isManager } = detail;
   const summary = summarizeRound({ round, tontine, members, contributionsById, today });
@@ -17,7 +20,9 @@ export default function RoundCollectionCard({ detail, round }) {
       <Card.Body>
         <div className="d-flex justify-content-between flex-wrap gap-2 mb-2">
           <h2 className="h6 fw-bold mb-0">
-            Tour n° {round.index} sur {tontine.totalShares} · {formatDate(round.dueDate)}
+            {round.depositsInRound > 1
+              ? `Dépôt du ${formatDate(round.dueDate)} · ${round.numberInRound}/${round.depositsInRound} du tour n° ${round.roundIndex} sur ${tontine.totalShares}`
+              : `Tour n° ${round.index} sur ${tontine.totalShares} · ${formatDate(round.dueDate)}`}
           </h2>
           <span className="small">
             Bénéficiaire : <strong>{round.beneficiaryName}</strong>

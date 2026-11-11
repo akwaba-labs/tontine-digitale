@@ -25,10 +25,23 @@ import {
   addNotification,
   addNotifications,
 } from '../../notifications/services/notificationService';
-import { contributionId, expectedAmount } from '../logic/contributions';
+import { contributionId, depositIndexOf, expectedAmount } from '../logic/contributions';
+import { depositLabel } from '../../rounds/logic/schedule';
 
-const contributionRef = (tontineId, roundIndex, memberId) =>
-  doc(db, 'tontines', tontineId, 'contributions', contributionId(roundIndex, memberId));
+const contributionRef = (tontineId, depositIndex, memberId) =>
+  doc(db, 'tontines', tontineId, 'contributions', contributionId(depositIndex, memberId));
+
+// `deposit` : un dépôt de buildDeposits() (avec un dépôt par tour, il a le numéro du tour).
+const depositFields = (deposit) => ({
+  roundIndex: deposit.roundIndex ?? deposit.index,
+  depositIndex: deposit.index,
+});
+
+// Pour le journal : le tour, et la date du dépôt s'il y en a plusieurs par tour.
+const depositPayload = (deposit) => ({
+  roundIndex: deposit.roundIndex ?? deposit.index,
+  ...((deposit.depositsInRound ?? 1) > 1 ? { depositDate: deposit.dueDate } : {}),
+});
 
 export function subscribeContributions(tontineId, onData, onError) {
   return onSnapshot(
@@ -78,7 +91,7 @@ export async function declarePayment(
   } else {
     batch.set(contribution, {
       ...declaration,
-      roundIndex: round.index,
+      ...depositFields(round),
       memberId: actor.uid,
       memberName: member.displayName,
       amount,
@@ -86,21 +99,33 @@ export async function declarePayment(
     });
   }
   addEvent(batch, tontine.id, actor, EVENT_TYPES.PAYMENT_DECLARED, {
-    roundIndex: round.index,
+    ...depositPayload(round),
     amount,
     method,
   });
   addNotifications(batch, actor, managersOf(tontine), {
     tontineId: tontine.id,
     type: NOTIFICATION_TYPES.PAYMENT_TO_CONFIRM,
-    message: `${actor.name} a déclaré ${formatAmount(amount)} (${PAYMENT_METHODS[method]}) pour le tour n° ${round.index}. À confirmer.`,
+    message: `${actor.name} a déclaré ${formatAmount(amount)} (${PAYMENT_METHODS[method]}) pour le ${depositLabel(round)}. À confirmer.`,
     link: tontineTabPath(tontine.id, 'cotisations'),
   });
   await batch.commit();
 }
 
-async function reviewPayment(actor, tontine, contribution, changes, eventType, notification) {
-  const ref = contributionRef(tontine.id, contribution.roundIndex, contribution.memberId);
+async function reviewPayment(
+  actor,
+  { tontine, contribution, deposit: knownDeposit },
+  changes,
+  eventType,
+  notification,
+) {
+  // Sans le dépôt (date inconnue), on se contente du numéro de tour.
+  const deposit = knownDeposit ?? {
+    index: depositIndexOf(contribution),
+    roundIndex: contribution.roundIndex,
+    depositsInRound: 1,
+  };
+  const ref = contributionRef(tontine.id, depositIndexOf(contribution), contribution.memberId);
   await runTransaction(db, async (transaction) => {
     const current = fromSnapshot(await transaction.get(ref));
     if (current?.status !== CONTRIBUTION_STATUS.DECLARED) {
@@ -108,7 +133,7 @@ async function reviewPayment(actor, tontine, contribution, changes, eventType, n
     }
     transaction.update(ref, { ...changes, updatedAt: serverTimestamp() });
     addEvent(transaction, tontine.id, actor, eventType, {
-      roundIndex: contribution.roundIndex,
+      ...depositPayload(deposit),
       memberId: contribution.memberId,
       memberName: contribution.memberName,
       amount: contribution.amount,
@@ -123,11 +148,14 @@ async function reviewPayment(actor, tontine, contribution, changes, eventType, n
   });
 }
 
-export function confirmPayment(actor, tontine, contribution) {
+const labelOf = (contribution, deposit) =>
+  deposit ? depositLabel(deposit) : `tour n° ${contribution.roundIndex}`;
+
+/** `deposit` (facultatif) : le dépôt concerné (buildDeposits), pour les messages et le journal. */
+export function confirmPayment(actor, tontine, contribution, deposit) {
   return reviewPayment(
     actor,
-    tontine,
-    contribution,
+    { tontine, contribution, deposit },
     {
       status: CONTRIBUTION_STATUS.CONFIRMED,
       confirmedAt: serverTimestamp(),
@@ -136,16 +164,15 @@ export function confirmPayment(actor, tontine, contribution) {
     EVENT_TYPES.PAYMENT_CONFIRMED,
     {
       type: NOTIFICATION_TYPES.PAYMENT_CONFIRMED,
-      message: `Votre paiement du tour n° ${contribution.roundIndex} (${tontine.name}) est confirmé.`,
+      message: `Votre paiement du ${labelOf(contribution, deposit)} (${tontine.name}) est confirmé.`,
     },
   );
 }
 
-export function rejectPayment(actor, tontine, contribution, reason) {
+export function rejectPayment(actor, tontine, contribution, reason, deposit) {
   return reviewPayment(
     actor,
-    tontine,
-    contribution,
+    { tontine, contribution, deposit },
     {
       status: CONTRIBUTION_STATUS.REJECTED,
       rejectionReason: reason.trim(),
@@ -155,7 +182,7 @@ export function rejectPayment(actor, tontine, contribution, reason) {
     EVENT_TYPES.PAYMENT_REJECTED,
     {
       type: NOTIFICATION_TYPES.PAYMENT_REJECTED,
-      message: `Votre paiement du tour n° ${contribution.roundIndex} (${tontine.name}) est rejeté : ${reason.trim()}`,
+      message: `Votre paiement du ${labelOf(contribution, deposit)} (${tontine.name}) est rejeté : ${reason.trim()}`,
     },
   );
 }
@@ -182,7 +209,7 @@ export async function recordPayment(
   } else {
     batch.set(contribution, {
       ...confirmation,
-      roundIndex: round.index,
+      ...depositFields(round),
       memberId: member.userId,
       memberName: member.displayName,
       amount,
@@ -191,7 +218,7 @@ export async function recordPayment(
     });
   }
   addEvent(batch, tontine.id, actor, EVENT_TYPES.PAYMENT_RECORDED, {
-    roundIndex: round.index,
+    ...depositPayload(round),
     memberId: member.userId,
     memberName: member.displayName,
     amount,
@@ -201,7 +228,7 @@ export async function recordPayment(
     userId: member.userId,
     tontineId: tontine.id,
     type: NOTIFICATION_TYPES.PAYMENT_CONFIRMED,
-    message: `${actor.name} a enregistré votre paiement du tour n° ${round.index} (${PAYMENT_METHODS[method]}).`,
+    message: `${actor.name} a enregistré votre paiement du ${depositLabel(round)} (${PAYMENT_METHODS[method]}).`,
     link: tontineTabPath(tontine.id, 'cotisations'),
   });
   await batch.commit();
@@ -221,7 +248,7 @@ export async function applyPenalty(actor, { tontine, member, round, existing }) 
   } else {
     batch.set(contribution, {
       ...penalty,
-      roundIndex: round.index,
+      ...depositFields(round),
       memberId: member.userId,
       memberName: member.displayName,
       amount: expectedAmount(tontine.amount, member.shares),
@@ -229,7 +256,7 @@ export async function applyPenalty(actor, { tontine, member, round, existing }) 
     });
   }
   addEvent(batch, tontine.id, actor, EVENT_TYPES.PENALTY_APPLIED, {
-    roundIndex: round.index,
+    ...depositPayload(round),
     memberId: member.userId,
     memberName: member.displayName,
     amount: tontine.penaltyAmount,
@@ -238,7 +265,7 @@ export async function applyPenalty(actor, { tontine, member, round, existing }) 
     userId: member.userId,
     tontineId: tontine.id,
     type: NOTIFICATION_TYPES.PENALTY_APPLIED,
-    message: `Pénalité de retard de ${formatAmount(tontine.penaltyAmount)} appliquée pour le tour n° ${round.index} (${tontine.name}).`,
+    message: `Pénalité de retard de ${formatAmount(tontine.penaltyAmount)} appliquée pour le ${depositLabel(round)} (${tontine.name}).`,
     link: tontineTabPath(tontine.id, 'cotisations'),
   });
   await batch.commit();

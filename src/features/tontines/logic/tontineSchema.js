@@ -23,11 +23,15 @@ export const tontineSchema = yup.object({
     .max(LIMITS.maxAmount, 'Montant trop élevé.'),
   frequency: yup
     .string()
-    .oneOf(Object.values(FREQUENCY), 'Choisissez une fréquence.')
-    .required('Choisissez une fréquence.'),
+    .oneOf(Object.values(FREQUENCY), 'Choisissez la fréquence des dépôts.')
+    .required('Choisissez la fréquence des dépôts.'),
+  depositsPerRound: integer('Dépôts par tour')
+    .required('Indiquez après combien de dépôts le pot est remis.')
+    .min(1, 'Au moins 1 dépôt.')
+    .max(LIMITS.maxDepositsPerRound, `Au plus ${LIMITS.maxDepositsPerRound} dépôts.`),
   startDate: yup
     .string()
-    .required('Choisissez la date du premier tour.')
+    .required('Choisissez la date du premier dépôt.')
     .test('iso-date', 'Date invalide.', (value) => isIsoDate(value)),
   totalShares: integer('Nombre de parts')
     .required('Indiquez le nombre de parts.')

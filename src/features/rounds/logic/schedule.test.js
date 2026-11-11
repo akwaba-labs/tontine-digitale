@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   areAllPayoutsReceived,
+  buildDeposits,
+  depositLabel,
+  getCurrentDepositIndex,
+  payoutRhythmLabel,
+  potAmountOf,
   buildRounds,
   buildSlots,
   computePot,
@@ -61,7 +66,7 @@ describe('getDueDate', () => {
 
   it('refuse un tour ou une fréquence invalides', () => {
     expect(() => getDueDate('2026-01-01', 'WEEKLY', 0)).toThrow(RangeError);
-    expect(() => getDueDate('2026-01-01', 'DAILY', 1)).toThrow(RangeError);
+    expect(() => getDueDate('2026-01-01', 'HOURLY', 1)).toThrow(RangeError);
   });
 });
 
@@ -167,5 +172,68 @@ describe('tour en cours', () => {
     const done = rounds.map((r) => ({ ...r, payoutStatus: 'RECEIVED' }));
     expect(areAllPayoutsReceived(done, 3)).toBe(true);
     expect(areAllPayoutsReceived(done, 4)).toBe(false);
+  });
+});
+
+describe('dépôts plusieurs fois par tour', () => {
+  const tontine = {
+    startDate: '2027-01-01',
+    frequency: 'DAILY',
+    depositsPerRound: 30,
+    amount: 1000,
+    totalShares: 3,
+    payoutOrder: [
+      { memberId: 'awa', memberName: 'Awa', shareNumber: 1 },
+      { memberId: 'koffi', memberName: 'Koffi', shareNumber: 1 },
+      { memberId: 'yao', memberName: 'Yao', shareNumber: 1 },
+    ],
+  };
+
+  it('dépôts chaque jour, pot tous les 30 jours', () => {
+    const rounds = buildRounds(tontine);
+    expect(rounds[0].dueDate).toBe('2027-01-30');
+    expect(rounds[0].depositDates).toHaveLength(30);
+    expect(rounds[0].depositDates[0]).toBe('2027-01-01');
+    expect(rounds[1].depositDates[0]).toBe('2027-01-31');
+    expect(rounds[2].dueDate).toBe('2027-03-31');
+    expect(rounds[0].potAmount).toBe(1000 * 3 * 30);
+    expect(potAmountOf(tontine)).toBe(90000);
+  });
+
+  it('numérote les dépôts à la suite et retrouve le dépôt en cours', () => {
+    const deposits = buildDeposits(buildRounds(tontine));
+    expect(deposits).toHaveLength(90);
+    expect(deposits[30]).toMatchObject({
+      index: 31,
+      roundIndex: 2,
+      dueDate: '2027-01-31',
+      numberInRound: 1,
+      depositsInRound: 30,
+      beneficiaryName: 'Koffi',
+    });
+    expect(getCurrentDepositIndex(deposits, '2027-01-15')).toBe(15);
+    expect(getCurrentDepositIndex(deposits, '2030-01-01')).toBe(90);
+    expect(depositLabel(deposits[30])).toBe('dépôt du 31 janvier 2027 (tour n° 2)');
+  });
+
+  it('dépôts chaque mois, pot tous les 3 mois', () => {
+    const quarterly = { ...tontine, frequency: 'MONTHLY', depositsPerRound: 3 };
+    const rounds = buildRounds(quarterly);
+    expect(rounds.map((r) => r.dueDate)).toEqual(['2027-03-01', '2027-06-01', '2027-09-01']);
+    expect(payoutRhythmLabel(quarterly)).toBe('tous les 3 dépôts');
+  });
+
+  it('un dépôt par tour : rien ne change (pas de depositDates, mêmes numéros)', () => {
+    const single = { ...tontine, frequency: 'WEEKLY', depositsPerRound: undefined };
+    const rounds = buildRounds(single);
+    expect(rounds[0]).not.toHaveProperty('depositDates');
+    expect(rounds[1].dueDate).toBe('2027-01-08');
+    const deposits = buildDeposits(rounds);
+    expect(deposits.map((d) => d.index)).toEqual([1, 2, 3]);
+    expect(depositLabel(deposits[1])).toBe('tour n° 2');
+  });
+
+  it('dépôts tous les 2 jours', () => {
+    expect(getDueDate('2027-01-01', 'EVERY_2_DAYS', 3)).toBe('2027-01-05');
   });
 });

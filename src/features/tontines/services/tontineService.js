@@ -43,6 +43,7 @@ function settingsFromForm(values) {
     description: (values.description ?? '').trim(),
     amount: values.amount,
     frequency: values.frequency,
+    depositsPerRound: values.depositsPerRound ?? 1,
     startDate: values.startDate,
     totalShares: values.totalShares,
     graceDays: values.graceDays,
@@ -58,6 +59,7 @@ function inviteData(tontineId, tontine, ownerId, ownerName) {
     ownerName,
     amount: tontine.amount,
     frequency: tontine.frequency,
+    depositsPerRound: tontine.depositsPerRound ?? 1,
     totalShares: tontine.totalShares,
   };
 }

@@ -8,7 +8,11 @@ import { subscribeMembers } from '../../members/services/memberService';
 import { subscribeRounds } from '../../rounds/services/roundService';
 import { subscribeContributions } from '../../contributions/services/contributionService';
 import { indexContributions } from '../../contributions/logic/contributions';
-import { getCurrentRoundIndex } from '../../rounds/logic/schedule';
+import {
+  buildDeposits,
+  getCurrentDepositIndex,
+  getCurrentRoundIndex,
+} from '../../rounds/logic/schedule';
 
 /** Toutes les données d'une tontine, en temps réel, et les droits de l'utilisateur. */
 export function useTontineDetail(tontineId) {
@@ -40,6 +44,8 @@ export function useTontineDetail(tontineId) {
     const contributionList = contributions.data ?? [];
     const uid = user?.uid;
     const currentRoundIndex = getCurrentRoundIndex(roundList, today);
+    const deposits = buildDeposits(roundList);
+    const currentDepositIndex = getCurrentDepositIndex(deposits, today);
     return {
       isLoading:
         tontine.isLoading || members.isLoading || rounds.isLoading || contributions.isLoading,
@@ -56,6 +62,8 @@ export function useTontineDetail(tontineId) {
       today,
       currentRoundIndex,
       currentRound: roundList.find((round) => round.index === currentRoundIndex) ?? null,
+      deposits,
+      currentDepositIndex,
       actor,
       uid,
     };

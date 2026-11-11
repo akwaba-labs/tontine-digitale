@@ -9,6 +9,7 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  Timestamp,
   updateDoc,
   where,
   writeBatch,
@@ -157,7 +158,7 @@ describe('tontines — création', () => {
       );
     }
     await assertFails(
-      setDoc(doc(dbAs('zoe'), 'tontines/t-daily'), newTontine({ frequency: 'DAILY' })),
+      setDoc(doc(dbAs('zoe'), 'tontines/t-daily'), newTontine({ frequency: 'HOURLY' })),
     );
   });
 
@@ -789,5 +790,157 @@ describe('préférence e-mail', () => {
 
   it('personne ne lit le journal des e-mails depuis l’application', async () => {
     await assertFails(getDocs(collection(dbAs('alice'), 'mailLog')));
+  });
+});
+
+describe('plusieurs dépôts par tour', () => {
+  const DAILY_ID = 't-daily';
+  const order = [
+    { memberId: 'owner', memberName: 'Olivier', shareNumber: 1 },
+    { memberId: 'alice', memberName: 'Alice', shareNumber: 1 },
+  ];
+  const daily = {
+    ...draftTontine,
+    name: 'Tontine journalière',
+    amount: 1000,
+    frequency: 'DAILY',
+    depositsPerRound: 3,
+    totalShares: 2,
+    inviteCode: 'DAIL23',
+    memberIds: ['owner', 'alice'],
+    payoutOrder: order,
+  };
+  const roundDoc = (index, dates, overrides = {}) => ({
+    index,
+    dueDate: dates[dates.length - 1],
+    depositDates: dates,
+    beneficiaryId: order[index - 1].memberId,
+    beneficiaryName: order[index - 1].memberName,
+    shareNumber: 1,
+    potAmount: 1000 * 2 * 3,
+    payoutStatus: 'PENDING',
+    createdAt: now(),
+    updatedAt: now(),
+    ...overrides,
+  });
+
+  async function seedDaily(status) {
+    await env.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(doc(db, `tontines/${DAILY_ID}`), { ...daily, status });
+      await setDoc(
+        doc(db, `tontines/${DAILY_ID}/members/owner`),
+        member('owner', { role: 'ORGANIZER' }),
+      );
+      await setDoc(doc(db, `tontines/${DAILY_ID}/members/alice`), member('alice'));
+      if (status === 'ACTIVE') {
+        const r1 = roundDoc(1, ['2020-01-01', '2020-01-02', '2020-01-03']);
+        const r2 = roundDoc(2, ['2099-01-01', '2099-01-02', '2099-01-03']);
+        for (const r of [r1, r2]) {
+          await setDoc(doc(db, `tontines/${DAILY_ID}/rounds/${r.index}`), {
+            ...r,
+            createdAt: Timestamp.now(),
+            updatedAt: Timestamp.now(),
+          });
+        }
+      }
+    });
+  }
+
+  const start = (rounds) => {
+    const db = dbAs('owner');
+    const batch = writeBatch(db);
+    batch.update(doc(db, `tontines/${DAILY_ID}`), {
+      status: 'ACTIVE',
+      activatedAt: now(),
+      updatedAt: now(),
+    });
+    rounds.forEach((r) => batch.set(doc(db, `tontines/${DAILY_ID}/rounds/${r.index}`), r));
+    return batch.commit();
+  };
+
+  it('démarre avec les dates des dépôts et un pot = dépôt × parts × dépôts', async () => {
+    await seedDaily('DRAFT');
+    await assertSucceeds(
+      start([
+        roundDoc(1, ['2027-01-01', '2027-01-02', '2027-01-03']),
+        roundDoc(2, ['2027-01-04', '2027-01-05', '2027-01-06']),
+      ]),
+    );
+  });
+
+  it('refuse un tour sans les dates de ses dépôts, ou avec un mauvais pot', async () => {
+    await seedDaily('DRAFT');
+    await assertFails(
+      start([
+        roundDoc(1, ['2027-01-01', '2027-01-02']),
+        roundDoc(2, ['2027-01-04', '2027-01-05', '2027-01-06']),
+      ]),
+    );
+    await assertFails(
+      start([
+        roundDoc(1, ['2027-01-01', '2027-01-02', '2027-01-03'], { potAmount: 2000 }),
+        roundDoc(2, ['2027-01-04', '2027-01-05', '2027-01-06']),
+      ]),
+    );
+  });
+
+  const declaration = (depositIndex, roundIndex, overrides = {}) => ({
+    roundIndex,
+    depositIndex,
+    memberId: 'alice',
+    memberName: 'Alice',
+    amount: 1000,
+    penaltyAmount: 0,
+    method: 'WAVE',
+    reference: 'W-1',
+    proofPath: null,
+    status: 'DECLARED',
+    declaredAt: now(),
+    updatedAt: now(),
+    ...overrides,
+  });
+  const contributions = `tontines/${DAILY_ID}/contributions`;
+
+  it('un membre déclare un dépôt précis du tour', async () => {
+    await seedDaily('ACTIVE');
+    await assertSucceeds(setDoc(doc(dbAs('alice'), `${contributions}/2_alice`), declaration(2, 1)));
+    await assertSucceeds(setDoc(doc(dbAs('alice'), `${contributions}/4_alice`), declaration(4, 2)));
+  });
+
+  it('refuse un dépôt rattaché au mauvais tour, au mauvais identifiant ou hors limites', async () => {
+    await seedDaily('ACTIVE');
+    const db = dbAs('alice');
+    await assertFails(setDoc(doc(db, `${contributions}/2_alice`), declaration(2, 2)));
+    await assertFails(setDoc(doc(db, `${contributions}/3_alice`), declaration(2, 1)));
+    await assertFails(setDoc(doc(db, `${contributions}/7_alice`), declaration(7, 3)));
+  });
+
+  it('la pénalité se base sur la date du dépôt, pas sur celle du tour', async () => {
+    await seedDaily('ACTIVE');
+    const penalty = (depositIndex, roundIndex) => ({
+      roundIndex,
+      depositIndex,
+      memberId: 'alice',
+      memberName: 'Alice',
+      amount: 1000,
+      penaltyAmount: 500,
+      status: 'LATE',
+      penaltyAppliedAt: now(),
+      updatedAt: now(),
+    });
+    const db = dbAs('owner');
+    await assertSucceeds(setDoc(doc(db, `${contributions}/1_alice`), penalty(1, 1)));
+    await assertFails(setDoc(doc(db, `${contributions}/5_alice`), penalty(5, 2)));
+  });
+
+  it('le nombre de dépôts par tour est figé après le démarrage', async () => {
+    await seedDaily('ACTIVE');
+    await assertFails(
+      updateDoc(doc(dbAs('owner'), `tontines/${DAILY_ID}`), {
+        depositsPerRound: 5,
+        updatedAt: now(),
+      }),
+    );
   });
 });

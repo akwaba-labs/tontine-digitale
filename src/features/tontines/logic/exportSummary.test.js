@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { indexContributions } from '../../contributions/logic/contributions';
+import { buildDeposits } from '../../rounds/logic/schedule';
 import {
   MEMBER_COLUMNS,
   buildContributionRows,
@@ -54,9 +55,10 @@ const detail = {
       reference: '',
     },
   ]),
-  currentRoundIndex: 2,
+  currentDepositIndex: 2,
   today: '2026-11-10',
 };
+detail.deposits = buildDeposits(detail.rounds);
 
 describe('export', () => {
   it('construit le bilan par membre', () => {

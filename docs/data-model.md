@@ -26,24 +26,25 @@ lire avant d'être accepté.
 
 ## `tontines/{tontineId}`
 
-| Champ                        | Type      | Note                                                                                                 |
-| ---------------------------- | --------- | ---------------------------------------------------------------------------------------------------- |
-| `name`, `description`        | string    |                                                                                                      |
-| `amount`                     | int       | cotisation par part                                                                                  |
-| `frequency`                  | string    | `WEEKLY` · `BIWEEKLY` · `MONTHLY` · `EVERY_2_MONTHS` · `QUARTERLY` · `SEMIANNUAL` · `EVERY_9_MONTHS` |
-| `startDate`                  | string    | `AAAA-MM-JJ`, échéance du tour 1                                                                     |
-| `totalShares`                | int       | nombre de parts = nombre de tours                                                                    |
-| `graceDays`, `penaltyAmount` | int       | règles de retard                                                                                     |
-| `status`                     | string    | `DRAFT` → `ACTIVE` → `COMPLETED` (ou `CANCELLED`)                                                    |
-| `ownerId`, `ownerName`       | string    | organisateur                                                                                         |
-| `inviteCode`                 | string    | 6 caractères                                                                                         |
-| `memberIds`                  | string[]  | membres acceptés (requêtes « mes tontines » et règles)                                               |
-| `coOrganizerIds`             | string[]  | peuvent confirmer les paiements                                                                      |
-| `orderMode`                  | string    | `MANUAL` · `DRAW`                                                                                    |
-| `payoutOrder`                | object[]  | `{ memberId, memberName, shareNumber }` par part                                                     |
-| `drawAt`, `drawBy`           | timestamp | tirage au sort : écrit une seule fois                                                                |
-| `activatedAt`, `closedAt`    | timestamp |                                                                                                      |
-| `createdAt`, `updatedAt`     | timestamp |                                                                                                      |
+| Champ                        | Type      | Note                                                                                                                                                       |
+| ---------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`, `description`        | string    |                                                                                                                                                            |
+| `amount`                     | int       | cotisation par part                                                                                                                                        |
+| `frequency`                  | string    | fréquence des **dépôts** : `DAILY` · `EVERY_2_DAYS` · `WEEKLY` · `BIWEEKLY` · `MONTHLY` · `EVERY_2_MONTHS` · `QUARTERLY` · `SEMIANNUAL` · `EVERY_9_MONTHS` |
+| `depositsPerRound`           | int       | dépôts avant chaque remise du pot (1–366, absent = 1)                                                                                                      |
+| `startDate`                  | string    | `AAAA-MM-JJ`, échéance du tour 1                                                                                                                           |
+| `totalShares`                | int       | nombre de parts = nombre de tours                                                                                                                          |
+| `graceDays`, `penaltyAmount` | int       | règles de retard                                                                                                                                           |
+| `status`                     | string    | `DRAFT` → `ACTIVE` → `COMPLETED` (ou `CANCELLED`)                                                                                                          |
+| `ownerId`, `ownerName`       | string    | organisateur                                                                                                                                               |
+| `inviteCode`                 | string    | 6 caractères                                                                                                                                               |
+| `memberIds`                  | string[]  | membres acceptés (requêtes « mes tontines » et règles)                                                                                                     |
+| `coOrganizerIds`             | string[]  | peuvent confirmer les paiements                                                                                                                            |
+| `orderMode`                  | string    | `MANUAL` · `DRAW`                                                                                                                                          |
+| `payoutOrder`                | object[]  | `{ memberId, memberName, shareNumber }` par part                                                                                                           |
+| `drawAt`, `drawBy`           | timestamp | tirage au sort : écrit une seule fois                                                                                                                      |
+| `activatedAt`, `closedAt`    | timestamp |                                                                                                                                                            |
+| `createdAt`, `updatedAt`     | timestamp |                                                                                                                                                            |
 
 Une fois `ACTIVE` : montant, fréquence, date de début, parts, ordre, membres et règles de retard
 sont figés par les règles de sécurité.
@@ -71,17 +72,24 @@ et reçoit autant de tours.
 
 ### `tontines/{id}/rounds/{index}`
 
-Créés en un seul lot au démarrage : `index, dueDate, beneficiaryId, beneficiaryName, shareNumber,
-potAmount (= amount × totalShares), payoutStatus (PENDING | SENT | RECEIVED), payoutMethod,
+Créés en un seul lot au démarrage : `index, dueDate, depositDates, beneficiaryId, beneficiaryName,
+shareNumber, potAmount (= amount × totalShares × depositsPerRound), payoutStatus (PENDING | SENT | RECEIVED), payoutMethod,
 payoutReference, payoutSentAt, payoutSentBy, payoutConfirmedAt`.
 
 Le versement du pot est tracé dans les deux sens : l'organisateur l'envoie (`SENT`), le
 bénéficiaire confirme la réception (`RECEIVED`).
 
-### `tontines/{id}/contributions/{roundIndex}_{uid}`
+**Dépôts et tours.** Chaque membre dépose `amount × parts` à chaque dépôt (selon `frequency`) ;
+tous les `depositsPerRound` dépôts, un membre prend le pot. Le dépôt n° k (k = 1, 2, …) tombe à
+`startDate + (k − 1) × fréquence` et appartient au tour `⌈k / depositsPerRound⌉`. Avec plusieurs
+dépôts par tour, leurs dates sont enregistrées dans `depositDates` (figées au démarrage) et `dueDate`
+(remise du pot) est la date du dernier. Avec un seul dépôt par tour, `depositDates` est absent.
 
-Une cotisation par membre et par tour (identifiant déterministe) :
-`roundIndex, memberId, memberName, amount, penaltyAmount, method, reference, proofPath, status,
+### `tontines/{id}/contributions/{depositIndex}_{uid}`
+
+Une cotisation par membre et par **dépôt** (identifiant déterministe ; avec un dépôt par tour, le
+numéro du dépôt est celui du tour) :
+`roundIndex, depositIndex, memberId, memberName, amount, penaltyAmount, method, reference, proofPath, status,
 declaredAt, confirmedAt, confirmedBy, rejectedAt, rejectedBy, rejectionReason, penaltyAppliedAt,
 updatedAt`.
 

@@ -8,13 +8,14 @@ import { FREQUENCY_LABELS, ORDER_MODE } from '../../../shared/constants/domain';
 import { formatDate } from '../../../shared/utils/formatDate';
 import { addDays, isIsoDate, todayIso } from '../../../shared/utils/dates';
 import { tontineSchema } from '../logic/tontineSchema';
-import { getDueDate } from '../../rounds/logic/schedule';
+import { getDueDate, getRoundDueDate } from '../../rounds/logic/schedule';
 
 const DEFAULT_VALUES = {
   name: '',
   description: '',
   amount: '',
   frequency: 'MONTHLY',
+  depositsPerRound: 1,
   startDate: addDays(todayIso(), 7),
   totalShares: '',
   ownerShares: 1,
@@ -23,28 +24,39 @@ const DEFAULT_VALUES = {
   orderMode: ORDER_MODE.DRAW,
 };
 
-function Preview({ amount, totalShares, startDate, frequency }) {
+function Preview({ amount, totalShares, startDate, frequency, depositsPerRound }) {
   const shares = Number(totalShares);
   const value = Number(amount);
+  const perRound = Number(depositsPerRound);
   if (
     !Number.isInteger(value) ||
     value <= 0 ||
     !Number.isInteger(shares) ||
     shares < 2 ||
+    !Number.isInteger(perRound) ||
+    perRound < 1 ||
     !isIsoDate(startDate)
   ) {
     return null;
   }
+  const tontine = { startDate, frequency, depositsPerRound: perRound };
+  const firstPayout = getRoundDueDate(tontine, 1);
   return (
     <Alert variant="success" className="mb-3">
-      Chaque tour, le bénéficiaire reçoit{' '}
+      {FREQUENCY_LABELS[frequency]}, chaque membre dépose{' '}
       <strong>
-        <AmountDisplay amount={value * shares} />
-      </strong>
-      .
+        <AmountDisplay amount={value} />
+      </strong>{' '}
+      par part.
+      <br />
+      {perRound === 1 ? 'À chaque dépôt' : `Tous les ${perRound} dépôts`}, un membre prend le pot de{' '}
+      <strong>
+        <AmountDisplay amount={value * shares * perRound} />
+      </strong>{' '}
+      (premier pot le {formatDate(firstPayout)}).
       <br />
       {shares} tours, du {formatDate(startDate)} au{' '}
-      {formatDate(getDueDate(startDate, frequency, shares))}.
+      {formatDate(getDueDate(startDate, frequency, shares * perRound))}.
     </Alert>
   );
 }
@@ -74,9 +86,9 @@ export default function TontineForm({
     defaultValues: { ...DEFAULT_VALUES, ...defaultValues },
   });
 
-  const [amount, totalShares, startDate, frequency] = useWatch({
+  const [amount, totalShares, startDate, frequency, depositsPerRound] = useWatch({
     control,
-    name: ['amount', 'totalShares', 'startDate', 'frequency'],
+    name: ['amount', 'totalShares', 'startDate', 'frequency', 'depositsPerRound'],
   });
 
   return (
@@ -102,7 +114,7 @@ export default function TontineForm({
 
       <Card className="shadow-sm mb-3">
         <Card.Body className="p-4">
-          <h2 className="h5 mb-3">Cotisation et calendrier</h2>
+          <h2 className="h5 mb-3">Dépôts et calendrier</h2>
           {lockStructure && (
             <Alert variant="info">
               La tontine a démarré : le montant, la fréquence, le calendrier et les règles de retard
@@ -112,7 +124,7 @@ export default function TontineForm({
           <Row xs={1} md={2}>
             <Col>
               <Form.Group className="mb-3" controlId="amount">
-                <Form.Label className="fw-semibold">Cotisation par part</Form.Label>
+                <Form.Label className="fw-semibold">Dépôt par part</Form.Label>
                 <InputGroup hasValidation>
                   <Form.Control
                     type="number"
@@ -132,9 +144,9 @@ export default function TontineForm({
             </Col>
             <Col>
               <TextField
-                label="Fréquence des tours"
+                label="Fréquence des dépôts"
                 as="select"
-                help="Chaque tour, tout le monde cotise et un membre prend le pot."
+                help="À quel rythme chaque membre fait son dépôt."
                 disabled={lockStructure}
                 registration={register('frequency')}
                 error={errors.frequency}
@@ -148,7 +160,19 @@ export default function TontineForm({
             </Col>
             <Col>
               <TextField
-                label="Date du premier tour"
+                label="Remise du pot : tous les … dépôts"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                readOnly={lockStructure}
+                help="1 = un membre prend le pot à chaque dépôt. Ex. dépôts chaque jour et 30 ici : le pot est remis tous les 30 jours."
+                registration={register('depositsPerRound')}
+                error={errors.depositsPerRound}
+              />
+            </Col>
+            <Col>
+              <TextField
+                label="Date du premier dépôt"
                 type="date"
                 readOnly={lockStructure}
                 registration={register('startDate')}
@@ -185,6 +209,7 @@ export default function TontineForm({
             totalShares={totalShares}
             startDate={startDate}
             frequency={frequency}
+            depositsPerRound={depositsPerRound}
           />
         </Card.Body>
       </Card>

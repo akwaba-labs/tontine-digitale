@@ -24,6 +24,7 @@ import {
 } from '../services/contributionService';
 import PaymentMethodModal from '../../rounds/components/PaymentMethodModal';
 import RoundCollectionCard from './RoundCollectionCard';
+import { depositLabel } from '../../rounds/logic/schedule';
 import RejectModal from './RejectModal';
 import ProofLink from './ProofLink';
 
@@ -118,7 +119,8 @@ export default function ContributionsTab({ detail }) {
     rounds,
     members,
     contributionsById,
-    currentRoundIndex,
+    deposits,
+    currentDepositIndex,
     today,
     actor,
     isManager,
@@ -137,11 +139,14 @@ export default function ContributionsTab({ detail }) {
     );
   }
 
-  // Tours visibles : jusqu'au tour en cours (on peut aussi payer le suivant à l'avance).
-  const lastVisible = Math.min(rounds.length, (currentRoundIndex ?? 1) + 1);
-  const visibleRounds = rounds.filter((round) => round.index <= lastVisible);
-  const roundIndex = selected ?? currentRoundIndex ?? 1;
-  const round = rounds.find((r) => r.index === roundIndex) ?? rounds[0];
+  // Dépôts visibles : jusqu'au dépôt en cours (on peut aussi payer le suivant à l'avance),
+  // du plus récent au plus ancien.
+  const lastVisible = Math.min(deposits.length, (currentDepositIndex ?? 1) + 1);
+  const visibleDeposits = deposits.filter((d) => d.index <= lastVisible).reverse();
+  const depositIndex = selected ?? currentDepositIndex ?? 1;
+  // `round` : le dépôt choisi (avec un dépôt par tour, c'est le tour).
+  const round = deposits.find((d) => d.index === depositIndex) ?? deposits[0];
+  const manyPerRound = round.depositsInRound > 1;
   const summary = summarizeRound({ round, tontine, members, contributionsById, today });
 
   const close = () => setAction(null);
@@ -154,7 +159,7 @@ export default function ContributionsTab({ detail }) {
 
   const handlers = {
     confirm: () =>
-      run(() => confirmPayment(actor, tontine, action.line.contribution), {
+      run(() => confirmPayment(actor, tontine, action.line.contribution, round), {
         success: 'Paiement confirmé.',
       }),
     penalty: () =>
@@ -169,17 +174,25 @@ export default function ContributionsTab({ detail }) {
   return (
     <>
       <Form.Group className="mb-3" controlId="round-select">
-        <Form.Label className="fw-semibold">Tour</Form.Label>
+        <Form.Label className="fw-semibold">{manyPerRound ? 'Dépôt' : 'Tour'}</Form.Label>
         <Form.Select
           value={round.index}
           onChange={(event) => setSelected(Number(event.target.value))}
         >
-          {visibleRounds.map((r) => (
-            <option key={r.index} value={r.index}>
-              Tour n° {r.index} — {formatDate(r.dueDate)} — {r.beneficiaryName}
-              {r.index === currentRoundIndex ? ' (en cours)' : ''}
-            </option>
-          ))}
+          {visibleDeposits.map((d) =>
+            d.depositsInRound > 1 ? (
+              <option key={d.index} value={d.index}>
+                {formatDate(d.dueDate)} — dépôt {d.numberInRound}/{d.depositsInRound} du tour n°{' '}
+                {d.roundIndex} ({d.beneficiaryName})
+                {d.index === currentDepositIndex ? ' · en cours' : ''}
+              </option>
+            ) : (
+              <option key={d.index} value={d.index}>
+                Tour n° {d.index} — {formatDate(d.dueDate)} — {d.beneficiaryName}
+                {d.index === currentDepositIndex ? ' (en cours)' : ''}
+              </option>
+            ),
+          )}
         </Form.Select>
         <Form.Text>
           Échéance le {formatDate(round.dueDate)} · en retard après le{' '}
@@ -223,7 +236,7 @@ export default function ContributionsTab({ detail }) {
         onCancel={close}
         onConfirm={(reason) =>
           runAndClose(() =>
-            run(() => rejectPayment(actor, tontine, action.line.contribution, reason), {
+            run(() => rejectPayment(actor, tontine, action.line.contribution, reason, round), {
               success: 'Paiement rejeté. Le membre est prévenu.',
             }),
           )
@@ -256,9 +269,9 @@ export default function ContributionsTab({ detail }) {
         onConfirm={() => runAndClose(handlers.penalty)}
       >
         {action?.line?.member.displayName} devra payer{' '}
-        <AmountDisplay amount={tontine.penaltyAmount} className="fw-bold" /> en plus pour le tour n°{' '}
-        {round.index}. Cette pénalité ne peut être appliquée qu’une fois et sera inscrite dans
-        l’historique.
+        <AmountDisplay amount={tontine.penaltyAmount} className="fw-bold" /> en plus pour le{' '}
+        {depositLabel(round)}. Cette pénalité ne peut être appliquée qu’une fois et sera inscrite
+        dans l’historique.
       </ConfirmModal>
     </>
   );

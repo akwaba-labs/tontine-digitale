@@ -9,7 +9,12 @@ import { formatAmount } from '../../../shared/utils/formatAmount';
 import { formatDate } from '../../../shared/utils/formatDate';
 import { declarePaymentPath, tontineTabPath } from '../../../app/routePaths';
 import { indexContributions, summarizeMember } from '../../contributions/logic/contributions';
-import { getCurrentRoundIndex } from '../../rounds/logic/schedule';
+import {
+  buildDeposits,
+  depositLabel,
+  getCurrentDepositIndex,
+  getCurrentRoundIndex,
+} from '../../rounds/logic/schedule';
 
 export const DUE_SOON_DAYS = 2;
 
@@ -43,6 +48,7 @@ export function buildTodos({ uid, tontine, bundle, today }) {
   const { rounds, contributions } = bundle;
   const contributionsById = indexContributions(contributions);
   const currentRoundIndex = getCurrentRoundIndex(rounds, today);
+  const deposits = buildDeposits(rounds);
   const me = members.find((m) => m.userId === uid && m.status === MEMBER_STATUS.ACTIVE);
 
   if (me) {
@@ -51,8 +57,9 @@ export function buildTodos({ uid, tontine, bundle, today }) {
       tontine,
       member: me,
       rounds,
+      deposits,
       contributionsById,
-      currentRoundIndex,
+      currentDepositIndex: getCurrentDepositIndex(deposits, today),
       today,
     });
     const { nextDue } = summary;
@@ -65,7 +72,7 @@ export function buildTodos({ uid, tontine, bundle, today }) {
           key: `${tontine.id}-late`,
           type: 'LATE',
           variant: 'danger',
-          text: `Cotisation en retard : ${amount} (tour n° ${nextDue.round.index})`,
+          text: `Cotisation en retard : ${amount} (${depositLabel(nextDue.round)})`,
           link,
         });
       } else if (nextDue.status === CONTRIBUTION_STATUS.REJECTED) {
@@ -73,7 +80,7 @@ export function buildTodos({ uid, tontine, bundle, today }) {
           key: `${tontine.id}-rejected`,
           type: 'REJECTED',
           variant: 'danger',
-          text: `Paiement rejeté : à déclarer de nouveau (${amount}, tour n° ${nextDue.round.index})`,
+          text: `Paiement rejeté : à déclarer de nouveau (${amount}, ${depositLabel(nextDue.round)})`,
           link,
         });
       } else if (days <= DUE_SOON_DAYS) {
@@ -152,13 +159,15 @@ export function buildTotals({ uid, tontines, bundles, today }) {
     if (!bundle?.rounds || !bundle?.contributions || !bundle?.members) continue;
     const me = bundle.members.find((m) => m.userId === uid && m.status === MEMBER_STATUS.ACTIVE);
     if (!me) continue;
+    const deposits = buildDeposits(bundle.rounds);
     const summary = summarizeMember({
       userId: uid,
       tontine,
       member: me,
       rounds: bundle.rounds,
+      deposits,
       contributionsById: indexContributions(bundle.contributions),
-      currentRoundIndex: getCurrentRoundIndex(bundle.rounds, today),
+      currentDepositIndex: getCurrentDepositIndex(deposits, today),
       today,
     });
     totals.paid += summary.totalPaid;

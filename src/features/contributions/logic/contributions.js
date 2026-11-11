@@ -5,12 +5,20 @@ import {
   PAYOUT_STATUS,
 } from '../../../shared/constants/domain';
 
-/** Identifiant déterministe : une seule cotisation par membre et par tour. */
-export function contributionId(roundIndex, memberId) {
-  return `${roundIndex}_${memberId}`;
+/**
+ * Identifiant déterministe : une seule cotisation par membre et par dépôt.
+ * Avec un dépôt par tour, le numéro de dépôt est celui du tour (identifiants inchangés).
+ */
+export function contributionId(depositIndex, memberId) {
+  return `${depositIndex}_${memberId}`;
 }
 
-/** Montant attendu d'un membre pour un tour : cotisation × nombre de parts. */
+/** Numéro de dépôt d'une cotisation (absent sur les anciennes : c'est alors celui du tour). */
+export function depositIndexOf(contribution) {
+  return contribution.depositIndex ?? contribution.roundIndex;
+}
+
+/** Montant attendu d'un membre pour un dépôt : cotisation × nombre de parts. */
 export function expectedAmount(tontineAmount, shares) {
   return tontineAmount * shares;
 }
@@ -62,7 +70,7 @@ export function canApplyPenalty(contribution, round, tontine, today) {
 }
 
 export function indexContributions(contributions) {
-  return new Map(contributions.map((c) => [contributionId(c.roundIndex, c.memberId), c]));
+  return new Map(contributions.map((c) => [contributionId(depositIndexOf(c), c.memberId), c]));
 }
 
 export function activeMembers(members) {
@@ -70,8 +78,8 @@ export function activeMembers(members) {
 }
 
 /**
- * Situation de chaque membre pour un tour donné, et totaux du tour.
- * `contributionsById` : Map produite par indexContributions().
+ * Situation de chaque membre pour un dépôt donné (`round` : un dépôt de buildDeposits()),
+ * et totaux du dépôt. `contributionsById` : Map produite par indexContributions().
  */
 export function summarizeRound({ round, tontine, members, contributionsById, today }) {
   const lines = activeMembers(members).map((member) => {
@@ -109,18 +117,20 @@ export function summarizeRound({ round, tontine, members, contributionsById, tod
 
 /**
  * Bilan d'un membre dans une tontine : total versé, total reçu, retards,
- * prochaine échéance et tours où il reçoit le pot.
+ * prochain dépôt à faire et tours où il reçoit le pot.
+ * `deposits` : buildDeposits(rounds) ; `currentDepositIndex` : getCurrentDepositIndex().
  */
 export function summarizeMember({
   userId,
   tontine,
   member,
   rounds,
+  deposits,
   contributionsById,
-  currentRoundIndex,
+  currentDepositIndex,
   today,
 }) {
-  const sorted = [...rounds].sort((a, b) => a.index - b.index);
+  const sorted = [...deposits].sort((a, b) => a.index - b.index);
   let totalPaid = 0;
   let totalPenalties = 0;
   let lateCount = 0;
@@ -148,11 +158,13 @@ export function summarizeMember({
   }
 
   // On ne propose pas une échéance trop lointaine comme « prochaine » si tout est à jour.
-  if (nextDue && currentRoundIndex !== null && nextDue.round.index > currentRoundIndex + 1) {
+  if (nextDue && currentDepositIndex !== null && nextDue.round.index > currentDepositIndex + 1) {
     nextDue = null;
   }
 
-  const myRounds = sorted.filter((round) => round.beneficiaryId === userId);
+  const myRounds = [...rounds]
+    .sort((a, b) => a.index - b.index)
+    .filter((round) => round.beneficiaryId === userId);
   const totalReceived = myRounds
     .filter((round) => round.payoutStatus === PAYOUT_STATUS.RECEIVED)
     .reduce((total, round) => total + round.potAmount, 0);

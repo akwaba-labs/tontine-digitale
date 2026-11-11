@@ -5,6 +5,7 @@ import StatusBadge from '../../../shared/components/StatusBadge';
 import { formatDate } from '../../../shared/utils/formatDate';
 import { declarePaymentPath } from '../../../app/routePaths';
 import { CONTRIBUTION_STATUS } from '../../../shared/constants/domain';
+import { depositLabel } from '../../rounds/logic/schedule';
 
 /** Situation personnelle d'un membre dans une tontine. `summary` = summarizeMember(). */
 export default function MemberSummaryCard({ tontine, summary, title = 'Ma situation' }) {
@@ -20,7 +21,7 @@ export default function MemberSummaryCard({ tontine, summary, title = 'Ma situat
             <div className="d-flex justify-content-between align-items-center gap-2 flex-wrap">
               <div>
                 <div className="small text-secondary">
-                  Prochaine cotisation · tour n° {nextDue.round.index}
+                  Prochaine cotisation · {depositLabel(nextDue.round)}
                 </div>
                 <div className="fs-5 fw-bold">
                   <AmountDisplay amount={nextDue.amount} />

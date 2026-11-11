@@ -3,18 +3,16 @@ import { Card } from 'react-bootstrap';
 import AmountDisplay from '../../../shared/components/AmountDisplay';
 import { FREQUENCY_LABELS, ORDER_MODE } from '../../../shared/constants/domain';
 import { formatDate, formatDateTime } from '../../../shared/utils/formatDate';
-import { computePot } from '../../rounds/logic/schedule';
+import { payoutRhythmLabel, potAmountOf } from '../../rounds/logic/schedule';
 
 export default function TontineInfoCard({ tontine }) {
   const rows = [
-    ['Cotisation par part', <AmountDisplay key="a" amount={tontine.amount} />],
-    ['Fréquence', FREQUENCY_LABELS[tontine.frequency]],
-    ['Premier tour', formatDate(tontine.startDate)],
+    ['Dépôt par part', <AmountDisplay key="a" amount={tontine.amount} />],
+    ['Fréquence des dépôts', FREQUENCY_LABELS[tontine.frequency]],
+    ['Remise du pot', payoutRhythmLabel(tontine)],
+    ['Premier dépôt', formatDate(tontine.startDate)],
     ['Nombre de tours', tontine.totalShares],
-    [
-      'Pot de chaque tour',
-      <AmountDisplay key="p" amount={computePot(tontine.amount, tontine.totalShares)} />,
-    ],
+    ['Pot de chaque tour', <AmountDisplay key="p" amount={potAmountOf(tontine)} />],
     ['Délai de grâce', `${tontine.graceDays} jour${tontine.graceDays > 1 ? 's' : ''}`],
     [
       'Pénalité de retard',

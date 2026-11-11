@@ -90,8 +90,9 @@ export default function OverviewTab({ detail }) {
           tontine,
           member: me,
           rounds,
+          deposits: detail.deposits,
           contributionsById: detail.contributionsById,
-          currentRoundIndex: detail.currentRoundIndex,
+          currentDepositIndex: detail.currentDepositIndex,
           today: detail.today,
         })
       : null;

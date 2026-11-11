@@ -10,6 +10,7 @@ import { useActor, useAuth } from '../../../shared/hooks/useAuth';
 import { useAsyncAction } from '../../../shared/hooks/useAsyncAction';
 import { getErrorMessage } from '../../../shared/utils/errorMessages';
 import { FREQUENCY_LABELS, LIMITS, MEMBER_STATUS } from '../../../shared/constants/domain';
+import { payoutRhythmLabel } from '../../rounds/logic/schedule';
 import { ROUTES, joinPath, tontineDetailPath } from '../../../app/routePaths';
 import { isValidInviteCode, normalizeInviteCode } from '../../tontines/logic/inviteCode';
 import { findInvite, getMyMembership, requestToJoin } from '../services/memberService';
@@ -108,12 +109,14 @@ export default function JoinTontinePage() {
                   <dl className="row mb-3">
                     <dt className="col-6 fw-normal text-secondary">Organisateur</dt>
                     <dd className="col-6">{invite.ownerName}</dd>
-                    <dt className="col-6 fw-normal text-secondary">Cotisation par part</dt>
+                    <dt className="col-6 fw-normal text-secondary">Dépôt par part</dt>
                     <dd className="col-6">
                       <AmountDisplay amount={invite.amount} />
                     </dd>
-                    <dt className="col-6 fw-normal text-secondary">Fréquence</dt>
+                    <dt className="col-6 fw-normal text-secondary">Fréquence des dépôts</dt>
                     <dd className="col-6">{FREQUENCY_LABELS[invite.frequency]}</dd>
+                    <dt className="col-6 fw-normal text-secondary">Remise du pot</dt>
+                    <dd className="col-6">{payoutRhythmLabel(invite)}</dd>
                     <dt className="col-6 fw-normal text-secondary">Nombre de tours</dt>
                     <dd className="col-6">{invite.totalShares}</dd>
                   </dl>

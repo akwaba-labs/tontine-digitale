@@ -26,7 +26,7 @@ const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_ORIGINAL_SIZE = 15 * 1024 * 1024;
 
 const schema = yup.object({
-  roundIndex: yup.number().required('Choisissez le tour.'),
+  roundIndex: yup.number().required('Choisissez le dépôt.'),
   method: yup
     .string()
     .oneOf(Object.keys(PAYMENT_METHODS), 'Choisissez le moyen de paiement.')
@@ -51,12 +51,13 @@ export default function DeclarePaymentPage() {
   const [fileError, setFileError] = useState('');
   const [formError, setFormError] = useState('');
 
-  const { tontine, me, rounds, contributionsById, currentRoundIndex, today, actor } = detail;
+  const { tontine, me, deposits, contributionsById, currentDepositIndex, today, actor } = detail;
 
+  // `round` : un dépôt (avec un dépôt par tour, c'est le tour).
   const declarable =
     me && tontine
-      ? rounds
-          .filter((round) => round.index <= (currentRoundIndex ?? 1) + 1)
+      ? deposits
+          .filter((round) => round.index <= (currentDepositIndex ?? 1) + 1)
           .map((round) => {
             const contribution =
               contributionsById.get(contributionId(round.index, me.userId)) ?? null;
@@ -137,7 +138,7 @@ export default function DeclarePaymentPage() {
           {declarable.length === 0 ? (
             <EmptyState
               title="Rien à déclarer"
-              message="Vos cotisations sont déclarées ou confirmées jusqu’au prochain tour."
+              message="Vos cotisations sont déclarées ou confirmées jusqu’au prochain dépôt."
               action={{ label: 'Retour à la tontine', to: tontineDetailPath(tontineId) }}
             />
           ) : (
@@ -150,14 +151,16 @@ export default function DeclarePaymentPage() {
                 <FormError message={formError} />
                 <Form noValidate onSubmit={handleSubmit(onSubmit)}>
                   <TextField
-                    label="Tour"
+                    label={(tontine.depositsPerRound ?? 1) > 1 ? 'Dépôt' : 'Tour'}
                     as="select"
                     registration={register('roundIndex')}
                     error={errors.roundIndex}
                   >
                     {declarable.map(({ round, status }) => (
                       <option key={round.index} value={round.index}>
-                        Tour n° {round.index} — {formatDate(round.dueDate)}
+                        {round.depositsInRound > 1
+                          ? `${formatDate(round.dueDate)} — dépôt ${round.numberInRound}/${round.depositsInRound} du tour n° ${round.roundIndex}`
+                          : `Tour n° ${round.index} — ${formatDate(round.dueDate)}`}
                         {status === 'LATE'
                           ? ' (en retard)'
                           : status === 'REJECTED'

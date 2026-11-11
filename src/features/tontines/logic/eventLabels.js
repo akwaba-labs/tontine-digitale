@@ -5,9 +5,15 @@ import {
   PAYMENT_METHODS,
 } from '../../../shared/constants/domain';
 import { formatAmount } from '../../../shared/utils/formatAmount';
+import { formatDate } from '../../../shared/utils/formatDate';
 
 const amount = (value) => (Number.isSafeInteger(value) ? formatAmount(value) : '');
 const method = (value) => (value ? ` (${PAYMENT_METHODS[value] ?? value})` : '');
+// « tour n° 2 », ou « dépôt du 5 janvier 2027 (tour n° 2) » s'il y a plusieurs dépôts par tour.
+const deposit = (p) =>
+  p.depositDate
+    ? `dépôt du ${formatDate(p.depositDate)} (tour n° ${p.roundIndex})`
+    : `tour n° ${p.roundIndex}`;
 
 /** Phrase lisible décrivant une entrée du journal. */
 export function describeEvent(event) {
@@ -43,15 +49,15 @@ export function describeEvent(event) {
     case EVENT_TYPES.DRAW_PERFORMED:
       return `${actor} a effectué le tirage au sort : ${(p.order ?? []).join(', ')}.`;
     case EVENT_TYPES.PAYMENT_DECLARED:
-      return `${actor} a déclaré ${amount(p.amount)}${method(p.method)} pour le tour n° ${p.roundIndex}.`;
+      return `${actor} a déclaré ${amount(p.amount)}${method(p.method)} pour le ${deposit(p)}.`;
     case EVENT_TYPES.PAYMENT_CONFIRMED:
-      return `${actor} a confirmé le paiement de ${p.memberName} (${amount(p.amount)}, tour n° ${p.roundIndex}).`;
+      return `${actor} a confirmé le paiement de ${p.memberName} (${amount(p.amount)}, ${deposit(p)}).`;
     case EVENT_TYPES.PAYMENT_REJECTED:
-      return `${actor} a rejeté le paiement de ${p.memberName} (tour n° ${p.roundIndex}) : ${p.reason}`;
+      return `${actor} a rejeté le paiement de ${p.memberName} (${deposit(p)}) : ${p.reason}`;
     case EVENT_TYPES.PAYMENT_RECORDED:
-      return `${actor} a enregistré le paiement de ${p.memberName}${method(p.method)} : ${amount(p.amount)}, tour n° ${p.roundIndex}.`;
+      return `${actor} a enregistré le paiement de ${p.memberName}${method(p.method)} : ${amount(p.amount)}, ${deposit(p)}.`;
     case EVENT_TYPES.PENALTY_APPLIED:
-      return `${actor} a appliqué une pénalité de ${amount(p.amount)} à ${p.memberName} (tour n° ${p.roundIndex}).`;
+      return `${actor} a appliqué une pénalité de ${amount(p.amount)} à ${p.memberName} (${deposit(p)}).`;
     case EVENT_TYPES.PAYOUT_SENT:
       return `${actor} a versé le pot du tour n° ${p.roundIndex} (${amount(p.amount)}) à ${p.beneficiaryName}${method(p.method)}.`;
     case EVENT_TYPES.PAYOUT_RECEIVED:
