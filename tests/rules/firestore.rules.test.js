@@ -468,7 +468,7 @@ describe('contributions', () => {
     penaltyAmount: 0,
     method: 'ORANGE_MONEY',
     reference: 'OM-123',
-    proofPath: null,
+    proofPath: `proofs/${ACTIVE_ID}/alice/recu.jpg`,
     status: 'DECLARED',
     declaredAt: now(),
     updatedAt: now(),
@@ -478,6 +478,15 @@ describe('contributions', () => {
 
   it('un membre déclare son paiement', async () => {
     await assertSucceeds(setDoc(doc(dbAs('alice'), `${path}/3_alice`), declaration()));
+  });
+
+  it('refuse une déclaration sans reçu de paiement', async () => {
+    await assertFails(
+      setDoc(doc(dbAs('alice'), `${path}/3_alice`), declaration({ proofPath: null })),
+    );
+    const withoutField = declaration();
+    delete withoutField.proofPath;
+    await assertFails(setDoc(doc(dbAs('alice'), `${path}/3_alice`), withoutField));
   });
 
   it('refuse un montant différent de cotisation × parts', async () => {
@@ -549,7 +558,7 @@ describe('contributions', () => {
         status: 'DECLARED',
         method: 'WAVE',
         reference: 'TX-2',
-        proofPath: null,
+        proofPath: `proofs/${ACTIVE_ID}/alice/recu-2.jpg`,
         declaredAt: now(),
         updatedAt: now(),
       }),
@@ -565,7 +574,7 @@ describe('contributions', () => {
       penaltyAmount: 0,
       method: 'CASH',
       reference: '',
-      proofPath: null,
+      proofPath: `proofs/${ACTIVE_ID}/owner/recu-co.jpg`,
       status: 'CONFIRMED',
       declaredAt: now(),
       confirmedAt: now(),
@@ -608,6 +617,8 @@ describe('contributions', () => {
         recorded('co', 'Coralie', 10000, `proofs/${ACTIVE_ID}/owner/recu-co.jpg`),
       ),
     );
+    // Sans reçu, l'enregistrement est refusé.
+    await assertFails(setDoc(doc(db, `${path}/3_alice`), recorded('alice', 'Alice', 20000, null)));
     // La photo doit venir du dossier de l'organisateur qui enregistre, pas d'un autre.
     await assertFails(
       setDoc(
@@ -933,7 +944,7 @@ describe('plusieurs dépôts par tour', () => {
     penaltyAmount: 0,
     method: 'WAVE',
     reference: 'W-1',
-    proofPath: null,
+    proofPath: `proofs/${DAILY_ID}/alice/recu.jpg`,
     status: 'DECLARED',
     declaredAt: now(),
     updatedAt: now(),

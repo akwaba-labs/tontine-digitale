@@ -53,3 +53,8 @@ export function safeRedirect(path) {
 export function adminTontinePath(tontineId) {
   return `/admin/tontines/${encodeURIComponent(tontineId)}`;
 }
+
+/** Enregistrer le paiement d'un membre (organisateur), membre présélectionné. */
+export function recordPaymentPath(tontineId, memberId) {
+  return `${tontineDetailPath(tontineId)}/declarer?membre=${encodeURIComponent(memberId)}`;
+}

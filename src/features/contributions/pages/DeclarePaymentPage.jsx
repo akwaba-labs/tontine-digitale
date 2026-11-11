@@ -137,6 +137,10 @@ function PaymentForm({ detail, payer, isRecording, isSelf }) {
 
   const onSubmit = async (values) => {
     setFormError('');
+    if (!proofFile) {
+      setFileError('Joignez la photo du reçu de paiement : elle est obligatoire.');
+      return;
+    }
     const payload = {
       tontine,
       member: payer,
@@ -213,10 +217,9 @@ function PaymentForm({ detail, payer, isRecording, isSelf }) {
         <Alert variant="light" className="small border d-flex gap-2">
           <HandCoins size={20} className="text-primary flex-shrink-0" aria-hidden="true" />
           <span>
-            <strong>Paiement en espèces : la preuve, c’est la confirmation.</strong> Remettez
-            l’argent à l’organisateur (ou à la personne désignée) : il confirme l’avoir reçu dans
-            l’application, et c’est inscrit dans l’historique que personne ne peut modifier. Si vous
-            avez un reçu signé, ajoutez-en la photo.
+            <strong>Paiement en espèces :</strong> demandez un reçu signé à la personne qui reçoit
+            l’argent et joignez-en la photo. L’organisateur confirme ensuite le paiement, et c’est
+            inscrit dans l’historique que personne ne peut modifier.
           </span>
         </Alert>
       )}
@@ -247,16 +250,22 @@ function PaymentForm({ detail, payer, isRecording, isSelf }) {
       />
       <Form.Group className="mb-3" controlId="proof">
         <Form.Label className="fw-semibold">
-          {isCash ? 'Photo du reçu signé (facultatif)' : 'Capture d’écran du SMS (facultatif)'}
+          {isCash ? 'Photo du reçu signé' : 'Capture d’écran du SMS de paiement'}{' '}
+          <span className="text-danger">*</span>
         </Form.Label>
         <Form.Control
           type="file"
           accept={ACCEPTED_TYPES.join(',')}
           onChange={onFileChange}
           isInvalid={Boolean(fileError)}
+          required
+          aria-required="true"
         />
         <Form.Control.Feedback type="invalid">{fileError}</Form.Control.Feedback>
-        <Form.Text>Image réduite automatiquement avant l’envoi. Visible par les membres.</Form.Text>
+        <Form.Text>
+          Obligatoire : c’est la preuve du paiement. Image réduite automatiquement avant l’envoi,
+          visible par les membres.
+        </Form.Text>
       </Form.Group>
       <SubmitButton isSubmitting={isSubmitting}>
         {isRecording

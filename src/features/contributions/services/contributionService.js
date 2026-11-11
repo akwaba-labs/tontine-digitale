@@ -69,11 +69,21 @@ export function getProofUrl(path) {
 const managersOf = (tontine) => [tontine.ownerId, ...(tontine.coOrganizerIds ?? [])];
 
 /** Le membre déclare son paiement (statut « déclaré » en attente de confirmation). */
+/**
+ * Reçu obligatoire : une photo à envoyer (`proofFile`), ou un reçu déjà envoyé (`proofPath`).
+ * Rangé dans le dossier de la personne qui l'envoie.
+ */
+async function resolveProof(tontine, actor, { proofFile, proofPath }) {
+  if (proofPath) return proofPath;
+  if (!proofFile) throw new AppError('Joignez la photo du reçu de paiement.');
+  return uploadProof(tontine.id, actor.uid, proofFile);
+}
+
 export async function declarePayment(
   actor,
-  { tontine, member, round, existing, method, reference, proofFile },
+  { tontine, member, round, existing, method, reference, proofFile, proofPath: knownProof },
 ) {
-  const proofPath = proofFile ? await uploadProof(tontine.id, actor.uid, proofFile) : null;
+  const proofPath = await resolveProof(tontine, actor, { proofFile, proofPath: knownProof });
   const amount = expectedAmount(tontine.amount, member.shares);
   const declaration = {
     status: CONTRIBUTION_STATUS.DECLARED,
@@ -190,13 +200,13 @@ export function rejectPayment(actor, tontine, contribution, reason, deposit) {
 /** Paiement remis directement à l'organisateur (espèces…) : enregistré et confirmé d'un coup. */
 export async function recordPayment(
   actor,
-  { tontine, member, round, existing, method, reference, proofFile = null },
+  { tontine, member, round, existing, method, reference, proofFile, proofPath: knownProof },
 ) {
   const amount = expectedAmount(tontine.amount, member.shares);
-  // Photo du reçu (facultative) : rangée dans le dossier de l'organisateur qui l'envoie.
-  const proofPath = proofFile ? await uploadProof(tontine.id, actor.uid, proofFile) : null;
+  // Photo du reçu (obligatoire) : rangée dans le dossier de l'organisateur qui l'envoie.
+  const proofPath = await resolveProof(tontine, actor, { proofFile, proofPath: knownProof });
   const confirmation = {
-    ...(proofPath ? { proofPath } : {}),
+    proofPath,
     status: CONTRIBUTION_STATUS.CONFIRMED,
     method,
     reference: reference.trim(),

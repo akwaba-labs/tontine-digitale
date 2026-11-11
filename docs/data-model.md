@@ -106,6 +106,11 @@ numéro du dépôt est celui du tour) :
 declaredAt, confirmedAt, confirmedBy, rejectedAt, rejectedBy, rejectionReason, penaltyAppliedAt,
 updatedAt`.
 
+Le **reçu de paiement est obligatoire** (`proofPath`, photo dans Storage) pour toute déclaration
+par un membre et tout paiement enregistré par l'organisateur ; il est rangé dans
+`proofs/{tontineId}/{uid de la personne qui l'envoie}/`. Seule une pénalité appliquée sans
+paiement (`LATE`) n'en a pas.
+
 Statuts stockés : `DECLARED`, `CONFIRMED`, `REJECTED`, `LATE` (pénalité appliquée sans paiement).
 Les statuts `PENDING` (aucun document) et `LATE` (échéance + délai de grâce dépassés) sont aussi
 **calculés** par `getEffectiveStatus()` dans `src/features/contributions/logic/contributions.js`.

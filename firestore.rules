@@ -516,9 +516,11 @@ service cloud.firestore {
             && path.matches('^proofs/' + tontineId + '/' + uploaderId + '/.+'));
         }
 
+        // Le reçu de paiement (photo) est obligatoire pour déclarer ou enregistrer un paiement.
         function validDeclaration(d, uploaderId) {
           return d.method in methods()
             && isText(d.reference, 0, 100)
+            && d.get('proofPath', null) != null
             && validProof(d.get('proofPath', null), uploaderId)
             && isNow(d.declaredAt);
         }
@@ -597,6 +599,7 @@ service cloud.firestore {
             && d.method in methods()
             && isText(d.reference, 0, 100)
             && onlyChanged(['status', 'method', 'reference', 'proofPath', 'declaredAt', 'confirmedAt', 'confirmedBy', 'updatedAt'])
+            && d.get('proofPath', null) != null
             && (d.get('proofPath', null) == existing().get('proofPath', null)
               || validProof(d.get('proofPath', null), uid()))
             && isNow(d.declaredAt)

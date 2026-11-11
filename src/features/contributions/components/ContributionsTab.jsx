@@ -14,15 +14,9 @@ import {
 } from '../../../shared/constants/domain';
 import { formatDate, formatDateTime } from '../../../shared/utils/formatDate';
 import { formatAmount } from '../../../shared/utils/formatAmount';
-import { declarePaymentPath } from '../../../app/routePaths';
+import { declarePaymentPath, recordPaymentPath } from '../../../app/routePaths';
 import { canApplyPenalty, canDeclare, graceDeadline, summarizeRound } from '../logic/contributions';
-import {
-  applyPenalty,
-  confirmPayment,
-  recordPayment,
-  rejectPayment,
-} from '../services/contributionService';
-import PaymentMethodModal from '../../rounds/components/PaymentMethodModal';
+import { applyPenalty, confirmPayment, rejectPayment } from '../services/contributionService';
 import RoundCollectionCard from './RoundCollectionCard';
 import { depositLabel, payableDeposits } from '../../rounds/logic/schedule';
 import RejectModal from './RejectModal';
@@ -80,13 +74,12 @@ function ContributionLine({ line, round, detail, onAction }) {
                 </>
               )}
               {isManager && canDeclare(status) && (
-                <Button
-                  size="sm"
-                  variant="outline-primary"
-                  onClick={() => onAction('record', line)}
+                <Link
+                  to={recordPaymentPath(tontine.id, member.userId)}
+                  className="btn btn-sm btn-outline-primary"
                 >
                   Paiement reçu
-                </Button>
+                </Link>
               )}
               {isOwner && canApplyPenalty(contribution, round, tontine, today) && (
                 <Button
@@ -237,23 +230,6 @@ export default function ContributionsTab({ detail }) {
           runAndClose(() =>
             run(() => rejectPayment(actor, tontine, action.line.contribution, reason, round), {
               success: 'Paiement rejeté. Le membre est prévenu.',
-            }),
-          )
-        }
-      />
-      <PaymentMethodModal
-        key={action?.type === 'record' ? `record-${action.line.member.userId}` : 'record-none'}
-        show={action?.type === 'record'}
-        title={`Paiement reçu de ${action?.line?.member.displayName ?? ''}`}
-        description="Le paiement vous a été remis directement : il sera enregistré et confirmé."
-        amount={action?.line?.due}
-        confirmLabel="Enregistrer et confirmer"
-        isProcessing={isRunning}
-        onCancel={close}
-        onConfirm={({ method, reference }) =>
-          runAndClose(() =>
-            run(() => recordPayment(actor, { ...params(action.line), method, reference }), {
-              success: 'Paiement enregistré.',
             }),
           )
         }

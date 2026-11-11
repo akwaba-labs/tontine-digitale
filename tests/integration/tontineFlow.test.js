@@ -189,7 +189,7 @@ describe('parcours complet d’une tontine', () => {
       existing: null,
       method: 'WAVE',
       reference: 'WAVE-123',
-      proofFile: null,
+      proofPath: `proofs/${tontineId}/${uids.awa}/recu.jpg`,
     });
     const declared = await read(`tontines/${tontineId}/contributions/1_${uids.awa}`);
     expect(declared).toMatchObject({ status: 'DECLARED', amount: 20000 });
@@ -202,7 +202,7 @@ describe('parcours complet d’une tontine', () => {
       existing: null,
       method: 'ORANGE_MONEY',
       reference: 'OM-1',
-      proofFile: null,
+      proofPath: `proofs/${tontineId}/${uids.koffi}/recu.jpg`,
     });
     // Un membre ne peut pas confirmer son propre paiement.
     await expect(
@@ -234,7 +234,7 @@ describe('parcours complet d’une tontine', () => {
       existing: rejected,
       method: 'ORANGE_MONEY',
       reference: 'OM-2',
-      proofFile: null,
+      proofPath: `proofs/${tontineId}/${uids.koffi}/recu.jpg`,
     });
 
     // Awa est co-organisatrice : elle confirme le paiement de Koffi.
@@ -253,6 +253,7 @@ describe('parcours complet d’une tontine', () => {
       existing: null,
       method: 'CASH',
       reference: '',
+      proofPath: `proofs/${tontineId}/${uids.owner}/recu.jpg`,
     });
     await applyPenalty(actorOf('owner'), {
       tontine,
@@ -332,7 +333,7 @@ describe('parcours complet d’une tontine', () => {
         existing: null,
         method: 'WAVE',
         reference: 'X',
-        proofFile: null,
+        proofPath: `proofs/${tontineId}/${uids.awa}/recu.jpg`,
       }),
     ).rejects.toMatchObject({ code: 'permission-denied' });
   });
