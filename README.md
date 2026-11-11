@@ -38,6 +38,12 @@ npm start
 
 Elle démarre les émulateurs **et** l'application ensemble ; `Ctrl+C` arrête tout.
 
+Les données (comptes, tontines, paiements…) sont **conservées d'une fois sur l'autre** : elles sont
+sauvegardées dans `emulator-data/` à l'arrêt (`Ctrl+C`) et rechargées au démarrage suivant. Ce
+dossier n'est pas commité. Pour repartir de zéro, arrêtez les émulateurs et supprimez-le. Évitez
+de fermer brutalement le terminal : la sauvegarde se fait au `Ctrl+C`. Pour sauvegarder sans
+arrêter : `npx firebase emulators:export ./emulator-data --project demo-tontine-digitale --force`.
+
 **Ou en deux terminaux** (pratique pour redémarrer l'app sans relancer les émulateurs). Dans un
 premier terminal :
 
